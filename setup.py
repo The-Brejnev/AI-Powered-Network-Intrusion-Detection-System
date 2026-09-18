@@ -17,9 +17,9 @@ def print_banner():
     banner = """
     ╔══════════════════════════════════════════════════════════════╗
     ║                                                              ║
-    ║   🛡️  AI-NIDS: AI Network Intrusion Detection System        ║
+    ║        AI-NIDS: AI Network Intrusion Detection System        ║
     ║                                                              ║
-    ║   Setup & Installation Script                                ║
+    ║                  Setup & Installation Script                 ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
     """
@@ -31,9 +31,9 @@ def check_python_version():
     print("Checking Python version...")
     version = sys.version_info
     if version.major < 3 or (version.major == 3 and version.minor < 10):
-        print(f"❌ Python 3.10+ required, found {version.major}.{version.minor}")
+        print(f" Python 3.10+ required, found {version.major}.{version.minor}")
         sys.exit(1)
-    print(f"✅ Python {version.major}.{version.minor}.{version.micro}")
+    print(f" Python {version.major}.{version.minor}.{version.micro}")
 
 
 def create_directories():
@@ -51,7 +51,7 @@ def create_directories():
     for directory in directories:
         path = Path(directory)
         path.mkdir(parents=True, exist_ok=True)
-        print(f"  ✅ {directory}")
+        print(f"   {directory}")
 
 
 def create_env_file():
@@ -64,12 +64,12 @@ def create_env_file():
     if not env_file.exists():
         if example_file.exists():
             shutil.copy(example_file, env_file)
-            print("  ✅ Created .env from .env.example")
-            print("  ⚠️  Please update .env with your configuration")
+            print("   Created .env from .env.example")
+            print("    Please update .env with your configuration")
         else:
-            print("  ❌ .env.example not found")
+            print("   .env.example not found")
     else:
-        print("  ✅ .env already exists")
+        print("   .env already exists")
 
 
 def install_dependencies():
@@ -80,9 +80,9 @@ def install_dependencies():
         subprocess.check_call([
             sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'
         ])
-        print("✅ Dependencies installed")
+        print(" Dependencies installed")
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to install dependencies: {e}")
+        print(f" Failed to install dependencies: {e}")
         return False
     
     return True
@@ -100,9 +100,9 @@ def initialize_database():
         subprocess.run([sys.executable, '-m', 'flask', 'db', 'init'], check=False)
         subprocess.run([sys.executable, '-m', 'flask', 'db', 'migrate', '-m', 'Initial migration'], check=False)
         subprocess.run([sys.executable, '-m', 'flask', 'db', 'upgrade'], check=False)
-        print("✅ Database initialized")
+        print(" Database initialized")
     except Exception as e:
-        print(f"⚠️  Database migration may need manual setup: {e}")
+        print(f"  Database migration may need manual setup: {e}")
 
 
 def run_tests():
@@ -116,19 +116,19 @@ def run_tests():
             text=True
         )
         if result.returncode == 0:
-            print("✅ All tests passed")
+            print(" All tests passed")
         else:
-            print("⚠️  Some tests failed")
+            print("  Some tests failed")
             print(result.stdout)
     except Exception as e:
-        print(f"⚠️  Could not run tests: {e}")
+        print(f"  Could not run tests: {e}")
 
 
 def print_next_steps():
     """Print next steps."""
     print("""
     ╔══════════════════════════════════════════════════════════════╗
-    ║                     Setup Complete! 🎉                       ║
+    ║                     Setup Complete!                          ║
     ╚══════════════════════════════════════════════════════════════╝
     
     Next Steps:

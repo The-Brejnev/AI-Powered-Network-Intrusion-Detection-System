@@ -66,26 +66,26 @@ def main():
     
     # Print startup banner
     print("""
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║                                                               ║
-    ║     █████╗ ██╗      ███╗   ██╗██╗██████╗ ███████╗            ║
-    ║    ██╔══██╗██║      ████╗  ██║██║██╔══██╗██╔════╝            ║
-    ║    ███████║██║█████╗██╔██╗ ██║██║██║  ██║███████╗            ║
-    ║    ██╔══██║██║╚════╝██║╚██╗██║██║██║  ██║╚════██║            ║
-    ║    ██║  ██║██║      ██║ ╚████║██║██████╔╝███████║            ║
-    ║    ╚═╝  ╚═╝╚═╝      ╚═╝  ╚═══╝╚═╝╚═════╝ ╚══════╝            ║
-    ║                                                               ║
-    ║    AI-Powered Network Intrusion Detection System              ║
-    ║    Version 1.0.0 | SOC-Grade Security                         ║
-    ║                                                               ║
-    ╚═══════════════════════════════════════════════════════════════╝
-    """)
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║     █████╗ ██╗      ███╗   ██╗██╗██████╗ ███████╗             ║
+║    ██╔══██╗██║      ████╗  ██║██║██╔══██╗██╔════╝             ║
+║    ███████║██║█████╗██╔██╗ ██║██║██║  ██║███████╗             ║
+║    ██╔══██║██║╚════╝██║╚██╗██║██║██║  ██║╚════██║             ║
+║    ██║  ██║██║      ██║ ╚████║██║██████╔╝███████║             ║
+║    ╚═╝  ╚═╝╚═╝      ╚═╝  ╚═══╝╚═╝╚═════╝ ╚══════╝             ║
+║                                                               ║
+║    AI-Powered Network Intrusion Detection System              ║
+║    Version 1.0.0 | SOC-Grade Security                         ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+""")
     
-    print(f"    🚀 Starting AI-NIDS...")
-    print(f"    📍 Environment: {os.environ.get('FLASK_ENV', 'development')}")
-    print(f"    🌐 URL: http://{args.host}:{args.port}")
-    print(f"    📊 Dashboard: http://{args.host}:{args.port}/dashboard")
-    print(f"    🔌 API: http://{args.host}:{args.port}/api/v1")
+    print(f"    Starting AI-NIDS...")
+    print(f"    Environment: {os.environ.get('FLASK_ENV', 'development')}")
+    print(f"    URL: http://{args.host}:{args.port}")
+    print(f"    Dashboard: http://{args.host}:{args.port}/dashboard")
+    print(f"    API: http://{args.host}:{args.port}/api/v1")
     print()
     
     # Run application
