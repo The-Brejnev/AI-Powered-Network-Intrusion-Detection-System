@@ -22,12 +22,13 @@
             </div>
             <h4>Alert Report</h4>
             <p class="text-muted mb-3">Export all security alerts with detailed analysis</p>
-            <a href="{{ url_for('analytics.export_data', data_type='alerts', days=30) }}" class="btn btn-export w-100">
+            <a href="{{ url_for('analytics.export_data', data_type='alerts', days=30) }}"
+               class="btn btn-export w-100">
                 <i class="bi bi-download me-2"></i>Download CSV
             </a>
         </div>
     </div>
-    
+
     <div class="cyber-card export-card">
         <div class="card-body text-center p-4">
             <div class="export-icon green mb-3">
@@ -35,12 +36,13 @@
             </div>
             <h4>Traffic Report</h4>
             <p class="text-muted mb-3">Export network flow data and statistics</p>
-            <a href="{{ url_for('analytics.export_data', data_type='flows', days=30) }}" class="btn btn-export w-100">
+            <a href="{{ url_for('analytics.export_data', data_type='flows', days=30) }}"
+               class="btn btn-export w-100">
                 <i class="bi bi-download me-2"></i>Download CSV
             </a>
         </div>
     </div>
-    
+
     <div class="cyber-card export-card">
         <div class="card-body text-center p-4">
             <div class="export-icon purple mb-3">
@@ -48,12 +50,13 @@
             </div>
             <h4>Executive Summary</h4>
             <p class="text-muted mb-3">High-level security overview for stakeholders</p>
-            <a href="{{ url_for('analytics.export_pdf_report', days=30) }}" class="btn btn-pdf-report w-100">
+            <a href="{{ url_for('analytics.export_pdf_report', days=30) }}"
+               class="btn btn-pdf-report w-100">
                 <i class="bi bi-file-earmark-pdf me-2"></i>Generate PDF Report
             </a>
         </div>
     </div>
-    
+
     <div class="cyber-card export-card">
         <div class="card-body text-center p-4">
             <div class="export-icon orange mb-3">
@@ -61,7 +64,8 @@
             </div>
             <h4>Threat Intelligence</h4>
             <p class="text-muted mb-3">Export threat indicators and attack patterns</p>
-            <a href="{{ url_for('analytics.export_data', data_type='alerts', days=7) }}" class="btn btn-export w-100">
+            <a href="{{ url_for('analytics.export_data', data_type='alerts', days=7) }}"
+               class="btn btn-export w-100">
                 <i class="bi bi-download me-2"></i>Download CSV
             </a>
         </div>
@@ -77,7 +81,7 @@
         <div class="row">
             <div class="col-md-3">
                 <div class="mb-3">
-                    <label class="form-label">Report Type</label>
+                    <label class="form-label" for="reportType">Report Type</label>
                     <select class="form-select" id="reportType">
                         <option value="alerts">Security Alerts</option>
                         <option value="flows">Network Flows</option>
@@ -87,7 +91,7 @@
             </div>
             <div class="col-md-3">
                 <div class="mb-3">
-                    <label class="form-label">Time Period</label>
+                    <label class="form-label" for="reportDays">Time Period</label>
                     <select class="form-select" id="reportDays">
                         <option value="1">Last 24 Hours</option>
                         <option value="7">Last 7 Days</option>
@@ -98,7 +102,7 @@
             </div>
             <div class="col-md-3">
                 <div class="mb-3">
-                    <label class="form-label">Format</label>
+                    <label class="form-label" for="reportFormat">Format</label>
                     <select class="form-select" id="reportFormat">
                         <option value="csv" selected>CSV</option>
                         <option value="json">JSON</option>
@@ -108,7 +112,8 @@
             <div class="col-md-3">
                 <div class="mb-3">
                     <label class="form-label">&nbsp;</label>
-                    <button class="btn btn-primary w-100" onclick="generateCustomReport()">
+                    <button type="button" class="btn btn-primary w-100"
+                            onclick="generateCustomReport(this)">
                         <i class="bi bi-gear me-2"></i>Generate
                     </button>
                 </div>
@@ -143,7 +148,9 @@
                     <td>{{ now.strftime('%Y-%m-%d %H:%M') if now else 'Just now' }}</td>
                     <td>24.5 KB</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary">
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick="downloadRecentReport('security_report_20251209.csv')"
+                                title="Download">
                             <i class="bi bi-download"></i>
                         </button>
                     </td>
@@ -157,7 +164,9 @@
                     <td>{{ now.strftime('%Y-%m-%d %H:%M') if now else 'Just now' }}</td>
                     <td>156.2 KB</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary">
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick="downloadRecentReport('alerts_export_20251209.csv')"
+                                title="Download">
                             <i class="bi bi-download"></i>
                         </button>
                     </td>
@@ -167,100 +176,21 @@
     </div>
 </div>
 
-<style>
-.export-card {
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-color);
-}
-
-.export-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--primary);
-    box-shadow: 0 10px 30px rgba(13, 110, 253, 0.2);
-}
-
-.export-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-}
-
-.export-icon.blue {
-    background: rgba(13, 110, 253, 0.15);
-    color: var(--primary);
-}
-
-.export-icon.green {
-    background: rgba(25, 135, 84, 0.15);
-    color: var(--success);
-}
-
-.export-icon.purple {
-    background: rgba(111, 66, 193, 0.15);
-    color: var(--purple);
-}
-
-.export-icon.orange {
-    background: rgba(253, 126, 20, 0.15);
-    color: var(--orange);
-}
-
-.table {
-    color: var(--text-primary);
-}
-
-.table thead th {
-    background: var(--bg-dark);
-    border-color: var(--border-color);
-    color: var(--text-secondary);
-    font-weight: 500;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    padding: 1rem;
-}
-
-.table tbody td {
-    border-color: var(--border-color);
-    padding: 1rem;
-    vertical-align: middle;
-}
-
-.form-select, .form-control {
-    background: var(--bg-dark);
-    border-color: var(--border-color);
-    color: var(--text-primary);
-}
-
-.form-select:focus, .form-control:focus {
-    background: var(--bg-dark);
-    border-color: var(--primary);
-    color: var(--text-primary);
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-}
-</style>
-
-<script>
-function generateCustomReport() {
-    const type = document.getElementById('reportType').value;
-    const days = document.getElementById('reportDays').value;
-    window.location.href = `/analytics/export/${type}?days=${days}`;
-}
-</script>
-
-<!-- Legal & Compliance Documents Section -->
+<!-- =========================================================
+     LEGAL & COMPLIANCE DOCUMENTS
+     ========================================================= -->
 <div class="cyber-card mt-4 legal-docs-section">
     <div class="card-header">
-        <h3><i class="bi bi-file-earmark-lock me-2"></i>Legal & Compliance Documents</h3>
-        <span class="compliance-badge"><i class="bi bi-check-circle me-1"></i>GDPR & CCPA Compliant</span>
+        <h3><i class="bi bi-file-earmark-lock me-2"></i>Legal &amp; Compliance Documents</h3>
+        <span class="compliance-badge">
+            <i class="bi bi-check-circle me-1"></i>GDPR &amp; CCPA Compliant
+        </span>
     </div>
     <div class="card-body">
         <div class="legal-docs-grid">
             <!-- Privacy Policy -->
-            <div class="legal-doc-card" onclick="openLegalDoc('privacy')">
+            <div class="legal-doc-card" role="button" tabindex="0"
+                 data-doc="privacy" onclick="openLegalDoc('privacy')">
                 <div class="legal-doc-icon privacy">
                     <i class="bi bi-shield-lock"></i>
                 </div>
@@ -279,7 +209,8 @@ function generateCustomReport() {
             </div>
 
             <!-- Terms of Service -->
-            <div class="legal-doc-card" onclick="openLegalDoc('terms')">
+            <div class="legal-doc-card" role="button" tabindex="0"
+                 data-doc="terms" onclick="openLegalDoc('terms')">
                 <div class="legal-doc-icon terms">
                     <i class="bi bi-file-earmark-text"></i>
                 </div>
@@ -298,7 +229,8 @@ function generateCustomReport() {
             </div>
 
             <!-- Security Policy -->
-            <div class="legal-doc-card" onclick="openLegalDoc('security')">
+            <div class="legal-doc-card" role="button" tabindex="0"
+                 data-doc="security" onclick="openLegalDoc('security')">
                 <div class="legal-doc-icon security">
                     <i class="bi bi-shield-check"></i>
                 </div>
@@ -317,7 +249,8 @@ function generateCustomReport() {
             </div>
 
             <!-- Code of Conduct -->
-            <div class="legal-doc-card" onclick="openLegalDoc('conduct')">
+            <div class="legal-doc-card" role="button" tabindex="0"
+                 data-doc="conduct" onclick="openLegalDoc('conduct')">
                 <div class="legal-doc-icon conduct">
                     <i class="bi bi-people"></i>
                 </div>
@@ -336,7 +269,8 @@ function generateCustomReport() {
             </div>
 
             <!-- Contributing Guide -->
-            <div class="legal-doc-card" onclick="openLegalDoc('contributing')">
+            <div class="legal-doc-card" role="button" tabindex="0"
+                 data-doc="contributing" onclick="openLegalDoc('contributing')">
                 <div class="legal-doc-icon contributing">
                     <i class="bi bi-git"></i>
                 </div>
@@ -355,7 +289,8 @@ function generateCustomReport() {
             </div>
 
             <!-- License -->
-            <div class="legal-doc-card" onclick="openLegalDoc('license')">
+            <div class="legal-doc-card" role="button" tabindex="0"
+                 data-doc="license" onclick="openLegalDoc('license')">
                 <div class="legal-doc-icon license">
                     <i class="bi bi-file-earmark-code"></i>
                 </div>
@@ -395,46 +330,95 @@ function generateCustomReport() {
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <a href="#" id="downloadDocBtn" class="btn btn-primary">
+                <a href="#" id="downloadDocBtn" class="btn btn-primary" download>
                     <i class="bi bi-download me-2"></i>Download
                 </a>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+
+{% block extra_css %}
 <style>
-/* Legal Documents Section Animations */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* =========================================================
+   EXPORT CARDS
+   ========================================================= */
+.export-card {
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color, #2a2a3a);
 }
 
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+.export-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary, #0d6efd);
+    box-shadow: 0 10px 30px rgba(13, 110, 253, 0.2);
+}
+
+.export-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.export-icon.blue   { background: rgba(13, 110, 253, 0.15); color: #0d6efd; }
+.export-icon.green  { background: rgba(25, 135, 84, 0.15);  color: #198754; }
+.export-icon.purple { background: rgba(111, 66, 193, 0.15); color: #6f42c1; }
+.export-icon.orange { background: rgba(253, 126, 20, 0.15); color: #fd7e14; }
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+.table { color: var(--text-primary, #fff); }
+
+.table thead th {
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--border-color, #2a2a3a);
+    color: var(--text-secondary, #a0a0a0);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 1rem;
+}
+
+.table tbody td {
+    border-color: var(--border-color, #2a2a3a);
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+/* =========================================================
+   FORM CONTROLS
+   ========================================================= */
+.form-select, .form-control {
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--border-color, #2a2a3a);
+    color: var(--text-primary, #fff);
+}
+
+.form-select:focus, .form-control:focus {
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--primary, #0d6efd);
+    color: var(--text-primary, #fff);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+/* =========================================================
+   LEGAL DOCS SECTION
+   ========================================================= */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    50%      { transform: scale(1.05); }
 }
 
 .legal-docs-section {
@@ -451,7 +435,7 @@ function generateCustomReport() {
 
 .compliance-badge {
     background: linear-gradient(135deg, rgba(25, 135, 84, 0.2), rgba(13, 110, 253, 0.2));
-    color: var(--success);
+    color: #198754;
     padding: 0.5rem 1rem;
     border-radius: 20px;
     font-size: 0.8rem;
@@ -472,7 +456,7 @@ function generateCustomReport() {
     gap: 1rem;
     padding: 1.25rem;
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(51, 65, 85, 0.4));
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color, #2a2a3a);
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
@@ -484,37 +468,38 @@ function generateCustomReport() {
 .legal-doc-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
     transition: left 0.5s ease;
+    pointer-events: none;
 }
 
-.legal-doc-card:hover::before {
-    left: 100%;
-}
+.legal-doc-card:hover::before { left: 100%; }
 
-.legal-doc-card:nth-child(1) { animation-delay: 0.1s; }
+.legal-doc-card:nth-child(1) { animation-delay: 0.10s; }
 .legal-doc-card:nth-child(2) { animation-delay: 0.15s; }
-.legal-doc-card:nth-child(3) { animation-delay: 0.2s; }
+.legal-doc-card:nth-child(3) { animation-delay: 0.20s; }
 .legal-doc-card:nth-child(4) { animation-delay: 0.25s; }
-.legal-doc-card:nth-child(5) { animation-delay: 0.3s; }
+.legal-doc-card:nth-child(5) { animation-delay: 0.30s; }
 .legal-doc-card:nth-child(6) { animation-delay: 0.35s; }
 
-.legal-doc-card:hover {
+.legal-doc-card:hover,
+.legal-doc-card:focus-visible {
     transform: translateY(-5px) scale(1.02);
-    border-color: var(--primary);
+    border-color: var(--primary, #0d6efd);
     box-shadow: 0 15px 35px rgba(13, 110, 253, 0.15);
+    outline: none;
 }
 
-.legal-doc-card:hover .legal-doc-arrow {
+.legal-doc-card:hover .legal-doc-arrow,
+.legal-doc-card:focus-visible .legal-doc-arrow {
     transform: translateX(5px);
     opacity: 1;
 }
 
-.legal-doc-card:hover .legal-doc-icon {
+.legal-doc-card:hover .legal-doc-icon,
+.legal-doc-card:focus-visible .legal-doc-icon {
     transform: scale(1.1) rotate(5deg);
 }
 
@@ -530,51 +515,26 @@ function generateCustomReport() {
     transition: all 0.3s ease;
 }
 
-.legal-doc-icon.privacy {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
-    color: #8b5cf6;
-}
+.legal-doc-icon.privacy      { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));  color: #8b5cf6; }
+.legal-doc-icon.terms        { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));   color: #3b82f6; }
+.legal-doc-icon.security     { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));   color: #10b981; }
+.legal-doc-icon.conduct      { background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));   color: #f59e0b; }
+.legal-doc-icon.contributing { background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(219, 39, 119, 0.2));  color: #ec4899; }
+.legal-doc-icon.license      { background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(8, 145, 178, 0.2));    color: #06b6d4; }
 
-.legal-doc-icon.terms {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
-    color: #3b82f6;
-}
-
-.legal-doc-icon.security {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
-    color: #10b981;
-}
-
-.legal-doc-icon.conduct {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
-    color: #f59e0b;
-}
-
-.legal-doc-icon.contributing {
-    background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(219, 39, 119, 0.2));
-    color: #ec4899;
-}
-
-.legal-doc-icon.license {
-    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(8, 145, 178, 0.2));
-    color: #06b6d4;
-}
-
-.legal-doc-content {
-    flex: 1;
-}
+.legal-doc-content { flex: 1; }
 
 .legal-doc-content h4 {
-    margin: 0 0 0.25rem 0;
+    margin: 0 0 0.25rem;
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-primary, #fff);
 }
 
 .legal-doc-content p {
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.5rem;
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: var(--text-secondary, #a0a0a0);
 }
 
 .legal-doc-tags {
@@ -585,7 +545,7 @@ function generateCustomReport() {
 
 .legal-doc-tags .tag {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--text-muted);
+    color: var(--text-muted, #666);
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-size: 0.7rem;
@@ -594,21 +554,24 @@ function generateCustomReport() {
     transition: all 0.2s ease;
 }
 
-.legal-doc-card:hover .legal-doc-tags .tag {
+.legal-doc-card:hover .legal-doc-tags .tag,
+.legal-doc-card:focus-visible .legal-doc-tags .tag {
     background: rgba(13, 110, 253, 0.1);
-    color: var(--primary);
+    color: var(--primary, #0d6efd);
 }
 
 .legal-doc-arrow {
-    color: var(--text-muted);
+    color: var(--text-muted, #666);
     font-size: 1.2rem;
     opacity: 0.5;
     transition: all 0.3s ease;
 }
 
-/* Modal Styling */
+/* =========================================================
+   LEGAL MODAL
+   ========================================================= */
 #legalDocModal .modal-content {
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color, #2a2a3a);
     border-radius: 16px;
 }
 
@@ -622,26 +585,19 @@ function generateCustomReport() {
     overflow-y: auto;
 }
 
-#legalDocModal .modal-body::-webkit-scrollbar {
-    width: 8px;
-}
-
-#legalDocModal .modal-body::-webkit-scrollbar-track {
-    background: var(--bg-dark);
-}
-
-#legalDocModal .modal-body::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 4px;
-}
+#legalDocModal .modal-body::-webkit-scrollbar { width: 8px; }
+#legalDocModal .modal-body::-webkit-scrollbar-track { background: var(--bg-dark, #0d0d12); }
+#legalDocModal .modal-body::-webkit-scrollbar-thumb { background: var(--border-color, #2a2a3a); border-radius: 4px; }
 
 .legal-content {
-    color: var(--text-secondary);
+    color: var(--text-secondary, #a0a0a0);
     line-height: 1.8;
 }
 
-.legal-content h1, .legal-content h2, .legal-content h3 {
-    color: var(--text-primary);
+.legal-content h1,
+.legal-content h2,
+.legal-content h3 {
+    color: var(--text-primary, #fff);
     margin-top: 1.5rem;
     margin-bottom: 1rem;
 }
@@ -650,17 +606,28 @@ function generateCustomReport() {
 .legal-content h2 { font-size: 1.4rem; }
 .legal-content h3 { font-size: 1.2rem; }
 
-.legal-content ul, .legal-content ol {
+.legal-content ul,
+.legal-content ol {
     padding-left: 1.5rem;
     margin-bottom: 1rem;
 }
 
-.legal-content li {
-    margin-bottom: 0.5rem;
+.legal-content li { margin-bottom: 0.5rem; }
+.legal-content a { color: var(--primary, #0d6efd); }
+
+.legal-content pre {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    color: #00f2fe;
 }
 
-.legal-content a {
-    color: var(--primary);
+.legal-content code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
 }
 
 .loading-spinner {
@@ -670,38 +637,40 @@ function generateCustomReport() {
     min-height: 200px;
 }
 
-/* Responsive */
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
 @media (max-width: 768px) {
-    .legal-docs-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .legal-doc-card {
-        padding: 1rem;
-    }
-    
+    .legal-docs-grid { grid-template-columns: 1fr; }
+    .legal-doc-card { padding: 1rem; }
     .legal-docs-section .card-header {
         flex-direction: column;
         align-items: flex-start;
     }
 }
 </style>
+{% endblock %}
 
+
+{% block extra_js %}
 <script>
-// Legal documents content
-const legalDocs = {
-    privacy: {
-        title: 'Privacy Policy',
-        icon: 'bi-shield-lock',
-        file: 'PRIVACY_POLICY.md',
-        content: `
+(function () {
+    // =========================================================
+    // LEGAL DOCUMENTS CONTENT (sans emoji)
+    // =========================================================
+    const legalDocs = {
+        privacy: {
+            title: 'Privacy Policy',
+            icon: 'bi-shield-lock',
+            file: 'PRIVACY_POLICY.md',
+            content: `
 <div class="legal-content">
-    <h1>🔒 Privacy Policy</h1>
+    <h1>Privacy Policy</h1>
     <p class="text-muted">Last Updated: December 2025</p>
-    
+
     <h2>1. Introduction</h2>
     <p>AI-NIDS ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered Network Intrusion Detection System.</p>
-    
+
     <h2>2. Information We Collect</h2>
     <h3>2.1 Network Traffic Data</h3>
     <ul>
@@ -710,14 +679,14 @@ const legalDocs = {
         <li>Packet metadata and flow statistics</li>
         <li>Timestamp information</li>
     </ul>
-    
+
     <h3>2.2 User Account Information</h3>
     <ul>
         <li>Email address and username</li>
         <li>Hashed passwords (never stored in plain text)</li>
         <li>Authentication logs and session data</li>
     </ul>
-    
+
     <h2>3. How We Use Your Information</h2>
     <ul>
         <li>Detect and prevent network intrusions</li>
@@ -725,10 +694,10 @@ const legalDocs = {
         <li>Improve our AI/ML detection models</li>
         <li>Provide user authentication and access control</li>
     </ul>
-    
+
     <h2>4. Data Retention</h2>
     <p>We retain network traffic data for a configurable period (default: 90 days). Users can adjust retention policies based on compliance requirements.</p>
-    
+
     <h2>5. Data Security</h2>
     <ul>
         <li>AES-256 encryption for data at rest</li>
@@ -736,7 +705,7 @@ const legalDocs = {
         <li>Role-Based Access Control (RBAC)</li>
         <li>Regular security audits and penetration testing</li>
     </ul>
-    
+
     <h2>6. Your Rights (GDPR/CCPA)</h2>
     <ul>
         <li><strong>Access:</strong> Request a copy of your personal data</li>
@@ -745,24 +714,23 @@ const legalDocs = {
         <li><strong>Portability:</strong> Export your data in a machine-readable format</li>
         <li><strong>Opt-out:</strong> Opt-out of data collection (California residents)</li>
     </ul>
-    
+
     <h2>7. Contact Us</h2>
     <p>For privacy inquiries: <a href="mailto:privacy@ai-nids.local">privacy@ai-nids.local</a></p>
-</div>
-        `
-    },
-    terms: {
-        title: 'Terms of Service',
-        icon: 'bi-file-earmark-text',
-        file: 'TERMS_OF_SERVICE.md',
-        content: `
+</div>`
+        },
+        terms: {
+            title: 'Terms of Service',
+            icon: 'bi-file-earmark-text',
+            file: 'TERMS_OF_SERVICE.md',
+            content: `
 <div class="legal-content">
-    <h1>📜 Terms of Service</h1>
+    <h1>Terms of Service</h1>
     <p class="text-muted">Effective Date: December 2025</p>
-    
+
     <h2>1. Acceptance of Terms</h2>
     <p>By accessing or using AI-NIDS, you agree to be bound by these Terms of Service and all applicable laws and regulations.</p>
-    
+
     <h2>2. Description of Service</h2>
     <p>AI-NIDS is an AI-powered Network Intrusion Detection System that provides:</p>
     <ul>
@@ -771,7 +739,7 @@ const legalDocs = {
         <li>Security alerting and reporting</li>
         <li>Dashboard visualization and analytics</li>
     </ul>
-    
+
     <h2>3. User Responsibilities</h2>
     <ul>
         <li>Maintain the confidentiality of your account credentials</li>
@@ -779,7 +747,7 @@ const legalDocs = {
         <li>Comply with all applicable laws and regulations</li>
         <li>Report any security vulnerabilities responsibly</li>
     </ul>
-    
+
     <h2>4. Acceptable Use</h2>
     <p>You agree NOT to:</p>
     <ul>
@@ -788,39 +756,38 @@ const legalDocs = {
         <li>Share access credentials with unauthorized users</li>
         <li>Use the system for any illegal activities</li>
     </ul>
-    
+
     <h2>5. Intellectual Property</h2>
     <p>AI-NIDS is released under the MIT License. You may use, modify, and distribute the software according to the license terms.</p>
-    
+
     <h2>6. Limitation of Liability</h2>
     <p>AI-NIDS is provided "AS IS" without warranty. We are not liable for any damages arising from the use or inability to use the system.</p>
-    
+
     <h2>7. Changes to Terms</h2>
     <p>We reserve the right to modify these terms at any time. Continued use of the service constitutes acceptance of modified terms.</p>
-</div>
-        `
-    },
-    security: {
-        title: 'Security Policy',
-        icon: 'bi-shield-check',
-        file: 'SECURITY.md',
-        content: `
+</div>`
+        },
+        security: {
+            title: 'Security Policy',
+            icon: 'bi-shield-check',
+            file: 'SECURITY.md',
+            content: `
 <div class="legal-content">
-    <h1>🛡️ Security Policy</h1>
+    <h1>Security Policy</h1>
     <p class="text-muted">Version 1.0 | December 2025</p>
-    
+
     <h2>1. Supported Versions</h2>
     <table class="table table-dark table-bordered">
         <thead>
             <tr><th>Version</th><th>Supported</th></tr>
         </thead>
         <tbody>
-            <tr><td>2.x.x</td><td>✅ Active Support</td></tr>
-            <tr><td>1.x.x</td><td>⚠️ Security fixes only</td></tr>
-            <tr><td>&lt; 1.0</td><td>❌ End of Life</td></tr>
+            <tr><td>2.x.x</td><td>Active Support</td></tr>
+            <tr><td>1.x.x</td><td>Security fixes only</td></tr>
+            <tr><td>&lt; 1.0</td><td>End of Life</td></tr>
         </tbody>
     </table>
-    
+
     <h2>2. Reporting a Vulnerability</h2>
     <p>We take security seriously. Please report vulnerabilities responsibly:</p>
     <ol>
@@ -829,17 +796,17 @@ const legalDocs = {
         <li>Allow 48 hours for initial response</li>
         <li>Do not disclose publicly until patched</li>
     </ol>
-    
+
     <h2>3. Security Features</h2>
     <ul>
-        <li>✅ Password hashing with bcrypt (cost factor 12)</li>
-        <li>✅ CSRF protection on all forms</li>
-        <li>✅ SQL injection prevention via ORM</li>
-        <li>✅ XSS protection with content security policy</li>
-        <li>✅ Rate limiting on authentication endpoints</li>
-        <li>✅ Session timeout and secure cookie handling</li>
+        <li>Password hashing with bcrypt (cost factor 12)</li>
+        <li>CSRF protection on all forms</li>
+        <li>SQL injection prevention via ORM</li>
+        <li>XSS protection with content security policy</li>
+        <li>Rate limiting on authentication endpoints</li>
+        <li>Session timeout and secure cookie handling</li>
     </ul>
-    
+
     <h2>4. Compliance</h2>
     <ul>
         <li>SOC 2 Type II ready architecture</li>
@@ -847,7 +814,7 @@ const legalDocs = {
         <li>HIPAA compatible with proper configuration</li>
         <li>ISO 27001 aligned security controls</li>
     </ul>
-    
+
     <h2>5. Security Best Practices</h2>
     <ul>
         <li>Enable MFA for all administrative accounts</li>
@@ -856,23 +823,22 @@ const legalDocs = {
         <li>Review audit logs periodically</li>
         <li>Implement network segmentation</li>
     </ul>
-</div>
-        `
-    },
-    conduct: {
-        title: 'Code of Conduct',
-        icon: 'bi-people',
-        file: 'CODE_OF_CONDUCT.md',
-        content: `
+</div>`
+        },
+        conduct: {
+            title: 'Code of Conduct',
+            icon: 'bi-people',
+            file: 'CODE_OF_CONDUCT.md',
+            content: `
 <div class="legal-content">
-    <h1>🤝 Code of Conduct</h1>
+    <h1>Code of Conduct</h1>
     <p class="text-muted">Contributor Covenant v2.1</p>
-    
+
     <h2>Our Pledge</h2>
     <p>We pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.</p>
-    
+
     <h2>Our Standards</h2>
-    <h3>✅ Positive Behavior</h3>
+    <h3>Positive Behavior</h3>
     <ul>
         <li>Using welcoming and inclusive language</li>
         <li>Being respectful of differing viewpoints</li>
@@ -880,32 +846,31 @@ const legalDocs = {
         <li>Focusing on what is best for the community</li>
         <li>Showing empathy towards others</li>
     </ul>
-    
-    <h3>❌ Unacceptable Behavior</h3>
+
+    <h3>Unacceptable Behavior</h3>
     <ul>
         <li>Trolling, insulting, or derogatory comments</li>
         <li>Public or private harassment</li>
         <li>Publishing others' private information</li>
         <li>Other conduct deemed inappropriate</li>
     </ul>
-    
+
     <h2>Enforcement</h2>
     <p>Community leaders are responsible for clarifying and enforcing our standards. Violations may result in temporary or permanent bans from community participation.</p>
-    
+
     <h2>Reporting</h2>
     <p>Report violations to: <a href="mailto:conduct@ai-nids.local">conduct@ai-nids.local</a></p>
-</div>
-        `
-    },
-    contributing: {
-        title: 'Contributing Guide',
-        icon: 'bi-git',
-        file: 'CONTRIBUTING.md',
-        content: `
+</div>`
+        },
+        contributing: {
+            title: 'Contributing Guide',
+            icon: 'bi-git',
+            file: 'CONTRIBUTING.md',
+            content: `
 <div class="legal-content">
-    <h1>🚀 Contributing to AI-NIDS</h1>
+    <h1>Contributing to AI-NIDS</h1>
     <p class="text-muted">Thank you for your interest in contributing!</p>
-    
+
     <h2>Getting Started</h2>
     <ol>
         <li>Fork the repository</li>
@@ -914,7 +879,7 @@ const legalDocs = {
         <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
         <li>Run tests: <code>pytest</code></li>
     </ol>
-    
+
     <h2>Development Setup</h2>
     <pre><code># Create virtual environment
 python -m venv .venv
@@ -930,7 +895,7 @@ pip install -r requirements.txt
 
 # Run development server
 python run.py</code></pre>
-    
+
     <h2>Pull Request Process</h2>
     <ol>
         <li>Create a feature branch: <code>git checkout -b feature/amazing-feature</code></li>
@@ -940,7 +905,7 @@ python run.py</code></pre>
         <li>Push to your fork</li>
         <li>Open a Pull Request</li>
     </ol>
-    
+
     <h2>Code Style</h2>
     <ul>
         <li>Follow PEP 8 for Python code</li>
@@ -948,60 +913,150 @@ python run.py</code></pre>
         <li>Write docstrings for functions</li>
         <li>Keep functions small and focused</li>
     </ul>
-    
+
     <h2>Areas for Contribution</h2>
     <ul>
-        <li>🐛 Bug fixes</li>
-        <li>✨ New features</li>
-        <li>📚 Documentation</li>
-        <li>🧪 Test coverage</li>
-        <li>🎨 UI/UX improvements</li>
+        <li>Bug fixes</li>
+        <li>New features</li>
+        <li>Documentation</li>
+        <li>Test coverage</li>
+        <li>UI/UX improvements</li>
     </ul>
-</div>
-        `
-    },
-    license: {
-        title: 'MIT License',
-        icon: 'bi-file-earmark-code',
-        file: 'LICENSE',
-        content: `
+</div>`
+        },
+        license: {
+            title: 'MIT License',
+            icon: 'bi-file-earmark-code',
+            file: 'LICENSE',
+            content: `
 <div class="legal-content">
-    <h1>📄 MIT License</h1>
+    <h1>MIT License</h1>
     <p class="text-muted">Copyright (c) 2025 AI-NIDS Contributors</p>
-    
+
     <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px; font-family: monospace; margin: 1.5rem 0;">
         <p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
-        
+
         <p style="margin-top: 1rem;">The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
-        
+
         <p style="margin-top: 1rem;"><strong>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</strong></p>
     </div>
-    
+
     <h2>What This Means</h2>
     <ul>
-        <li>✅ Commercial use allowed</li>
-        <li>✅ Modification allowed</li>
-        <li>✅ Distribution allowed</li>
-        <li>✅ Private use allowed</li>
-        <li>⚠️ No liability or warranty</li>
-        <li>⚠️ License and copyright notice required</li>
+        <li>Commercial use allowed</li>
+        <li>Modification allowed</li>
+        <li>Distribution allowed</li>
+        <li>Private use allowed</li>
+        <li>No liability or warranty</li>
+        <li>License and copyright notice required</li>
     </ul>
-</div>
-        `
-    }
-};
+</div>`
+        }
+    };
 
-function openLegalDoc(docType) {
-    const doc = legalDocs[docType];
-    if (!doc) return;
-    
-    document.getElementById('legalDocTitle').innerHTML = 
-        '<i class="bi ' + doc.icon + ' me-2"></i>' + doc.title;
-    document.getElementById('legalDocContent').innerHTML = doc.content;
-    document.getElementById('downloadDocBtn').href = '/static/docs/' + doc.file;
-    
-    const modal = new bootstrap.Modal(document.getElementById('legalDocModal'));
-    modal.show();
+    // ✅ Cache du modal (évite la fuite mémoire)
+    let legalModalInstance = null;
+
+    // =========================================================
+    // OPEN LEGAL DOC
+    // =========================================================
+    window.openLegalDoc = function (docType) {
+        const doc = legalDocs[docType];
+        if (!doc) {
+            console.warn('Unknown legal doc:', docType);
+            return;
+        }
+
+        const titleEl = document.getElementById('legalDocTitle');
+        const contentEl = document.getElementById('legalDocContent');
+        const downloadEl = document.getElementById('downloadDocBtn');
+
+        if (titleEl) {
+            titleEl.innerHTML = '<i class="bi ' + doc.icon + ' me-2"></i>' + doc.title;
+        }
+        if (contentEl) {
+            contentEl.innerHTML = doc.content;
+        }
+        if (downloadEl) {
+            downloadEl.href = '/static/docs/' + doc.file;
+        }
+
+        // ✅ Réutilise la même instance de modal
+        const modalEl = document.getElementById('legalDocModal');
+        if (modalEl) {
+            if (!legalModalInstance) {
+                legalModalInstance = new bootstrap.Modal(modalEl);
+            }
+            legalModalInstance.show();
+        }
+    };
+
+    // =========================================================
+    // KEYBOARD SUPPORT (accessibilité)
+    // =========================================================
+    document.querySelectorAll('.legal-doc-card').forEach(function (card) {
+        card.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const docType = this.getAttribute('data-doc');
+                if (docType) window.openLegalDoc(docType);
+            }
+        });
+    });
+})();
+
+
+// =========================================================
+// CUSTOM REPORT GENERATION
+// =========================================================
+function generateCustomReport(btn) {
+    const typeEl = document.getElementById('reportType');
+    const daysEl = document.getElementById('reportDays');
+    const formatEl = document.getElementById('reportFormat');
+
+    if (!typeEl || !daysEl) return;
+
+    const type = typeEl.value;
+    const days = daysEl.value;
+    const format = formatEl ? formatEl.value : 'csv';
+
+    const originalHtml = btn ? btn.innerHTML : null;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Generating...';
+    }
+
+    // ✅ Respecte le format choisi
+    let url;
+    if (format === 'json') {
+        url = `/analytics/api/timeline?metric=${encodeURIComponent(type)}&days=${encodeURIComponent(days)}`;
+    } else {
+        url = `/analytics/export/${encodeURIComponent(type)}?days=${encodeURIComponent(days)}`;
+    }
+
+    // Téléchargement direct
+    window.location.href = url;
+
+    // Réactive le bouton après 2s
+    if (btn) {
+        setTimeout(function () {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }, 2000);
+    }
+}
+
+// =========================================================
+// DOWNLOAD RECENT REPORT (placeholder)
+// =========================================================
+function downloadRecentReport(filename) {
+    if (typeof showToast === 'function') {
+        showToast('Downloading: ' + filename);
+    } else {
+        alert('Downloading: ' + filename);
+    }
+    // ✅ Redirige vers une route si tu en as une
+    // window.location.href = `/analytics/download/${filename}`;
 }
 </script>
 {% endblock %}

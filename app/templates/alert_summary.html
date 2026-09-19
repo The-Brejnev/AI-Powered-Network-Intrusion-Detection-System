@@ -15,7 +15,8 @@
         <a href="{{ url_for('alerts.alert_list') }}" class="btn btn-outline-primary">
             <i class="bi bi-list me-2"></i>View All Alerts
         </a>
-        <a href="{{ url_for('analytics.export_data', data_type='alerts', days=30) }}" class="btn btn-export">
+        <a href="{{ url_for('analytics.export_data', data_type='alerts', days=30) }}"
+           class="btn btn-export">
             <i class="bi bi-download me-2"></i>Export Report
         </a>
     </div>
@@ -28,40 +29,46 @@
             <i class="bi bi-bell-fill"></i>
         </div>
         <div class="stat-content">
-            <h3 class="cyber-number">{{ today_stats.total }}</h3>
+            <h3 class="cyber-number">{{ (today_stats.total if today_stats else 0) or 0 }}</h3>
             <p>Today's Alerts</p>
         </div>
         <div class="stat-sparkline">
             <div class="mini-bar" style="height: 100%;"></div>
         </div>
     </div>
-    
+
     <div class="stat-card cyber-glow critical">
         <div class="stat-icon red">
             <i class="bi bi-exclamation-triangle-fill"></i>
         </div>
         <div class="stat-content">
-            <h3 class="cyber-number text-danger">{{ today_stats.critical }}</h3>
+            <h3 class="cyber-number text-danger">
+                {{ (today_stats.critical if today_stats else 0) or 0 }}
+            </h3>
             <p>Critical Alerts</p>
         </div>
     </div>
-    
+
     <div class="stat-card cyber-glow">
         <div class="stat-icon orange">
             <i class="bi bi-shield-exclamation"></i>
         </div>
         <div class="stat-content">
-            <h3 class="cyber-number text-warning">{{ today_stats.high }}</h3>
+            <h3 class="cyber-number text-warning">
+                {{ (today_stats.high if today_stats else 0) or 0 }}
+            </h3>
             <p>High Severity</p>
         </div>
     </div>
-    
+
     <div class="stat-card cyber-glow">
         <div class="stat-icon purple">
             <i class="bi bi-hourglass-split"></i>
         </div>
         <div class="stat-content">
-            <h3 class="cyber-number">{{ today_stats.unacknowledged }}</h3>
+            <h3 class="cyber-number">
+                {{ (today_stats.unacknowledged if today_stats else 0) or 0 }}
+            </h3>
             <p>Pending Review</p>
         </div>
     </div>
@@ -79,7 +86,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Attack Type Breakdown -->
     <div class="col-lg-4 mb-4">
         <div class="cyber-card h-100">
@@ -119,21 +126,22 @@
                                 </span>
                             </td>
                             <td>
-                                <code class="ip-address">{{ source.ip }}</code>
+                                <code class="ip-address">{{ source.ip or 'unknown' }}</code>
                             </td>
                             <td>
-                                <span class="badge bg-primary">{{ source.count }}</span>
+                                <span class="badge bg-primary">{{ source.count or 0 }}</span>
                             </td>
                             <td>
-                                {% if source.count >= 20 %}
+                                {% set cnt = source.count or 0 %}
+                                {% if cnt >= 20 %}
                                 <span class="threat-level critical">
                                     <i class="bi bi-circle-fill"></i> Critical
                                 </span>
-                                {% elif source.count >= 10 %}
+                                {% elif cnt >= 10 %}
                                 <span class="threat-level high">
                                     <i class="bi bi-circle-fill"></i> High
                                 </span>
-                                {% elif source.count >= 5 %}
+                                {% elif cnt >= 5 %}
                                 <span class="threat-level medium">
                                     <i class="bi bi-circle-fill"></i> Medium
                                 </span>
@@ -157,7 +165,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Attack Breakdown List -->
     <div class="col-lg-6 mb-4">
         <div class="cyber-card">
@@ -165,15 +173,19 @@
                 <h3><i class="bi bi-bug me-2"></i>Attack Distribution</h3>
             </div>
             <div class="card-body">
+                {# ✅ FIX : calcul safe du max AVANT la boucle #}
+                {% set max_count = (attack_breakdown[0].count if attack_breakdown and attack_breakdown[0].count else 1) %}
                 {% for attack in attack_breakdown %}
+                {% set cnt = attack.count or 0 %}
+                {% set pct = (cnt / max_count * 100) if max_count > 0 else 0 %}
+                {% if pct > 100 %}{% set pct = 100 %}{% endif %}
                 <div class="attack-item mb-3">
                     <div class="d-flex justify-content-between mb-1">
-                        <span class="attack-name">{{ attack.type }}</span>
-                        <span class="attack-count">{{ attack.count }}</span>
+                        <span class="attack-name">{{ attack.type or 'Unknown' }}</span>
+                        <span class="attack-count">{{ cnt }}</span>
                     </div>
                     <div class="progress attack-progress">
-                        {% set max_count = attack_breakdown[0].count if attack_breakdown else 1 %}
-                        <div class="progress-bar" style="width: {{ (attack.count / max_count * 100)|round }}%"></div>
+                        <div class="progress-bar" style="width: {{ pct|round }}%"></div>
                     </div>
                 </div>
                 {% else %}
@@ -186,7 +198,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+
+{% block extra_css %}
 <style>
 .cyber-glow {
     position: relative;
@@ -222,7 +237,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: var(--bg-hover);
+    background: var(--bg-hover, #1f1f2e);
     font-weight: 600;
     font-size: 0.85rem;
 }
@@ -233,7 +248,7 @@
 }
 
 .ip-address {
-    background: var(--bg-dark);
+    background: var(--bg-dark, #0d0d12);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.85rem;
@@ -258,33 +273,29 @@
 
 .attack-progress {
     height: 8px;
-    background: var(--bg-dark);
+    background: var(--bg-dark, #0d0d12);
     border-radius: 4px;
     overflow: hidden;
 }
 
 .attack-progress .progress-bar {
-    background: linear-gradient(90deg, var(--primary), var(--purple));
+    background: linear-gradient(90deg, var(--primary, #0d6efd), var(--purple, #6f42c1));
     border-radius: 4px;
 }
 
-.attack-name {
-    font-weight: 500;
-}
+.attack-name { font-weight: 500; }
 
 .attack-count {
-    color: var(--text-secondary);
+    color: var(--text-secondary, #a0a0a0);
     font-size: 0.9rem;
 }
 
-.table {
-    color: var(--text-primary);
-}
+.table { color: var(--text-primary, #fff); }
 
 .table thead th {
-    background: var(--bg-dark);
-    border-color: var(--border-color);
-    color: var(--text-secondary);
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--border-color, #2a2a3a);
+    color: var(--text-secondary, #a0a0a0);
     font-weight: 500;
     text-transform: uppercase;
     font-size: 0.75rem;
@@ -292,87 +303,136 @@
 }
 
 .table tbody td {
-    border-color: var(--border-color);
+    border-color: var(--border-color, #2a2a3a);
     padding: 0.75rem 1rem;
     vertical-align: middle;
 }
 
 .table tbody tr:hover {
-    background: var(--bg-hover);
+    background: var(--bg-hover, #1f1f2e);
 }
 </style>
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% block extra_js %}
+{# ✅ FIX : JSON injecté via script tags (évite XSS + parsing cassé) #}
+<script id="weekly-data-json" type="application/json">
+{{ (weekly_data or []) | tojson }}
+</script>
+<script id="attack-breakdown-json" type="application/json">
+{{ (attack_breakdown or []) | tojson }}
+</script>
+
 <script>
-// Weekly Trend Chart
-const weeklyData = {{ weekly_data | tojson }};
-const weeklyCtx = document.getElementById('weeklyTrendChart').getContext('2d');
-new Chart(weeklyCtx, {
-    type: 'line',
-    data: {
-        labels: weeklyData.map(d => d.date),
-        datasets: [{
-            label: 'Alerts',
-            data: weeklyData.map(d => d.count),
-            borderColor: '#0d6efd',
-            backgroundColor: 'rgba(13, 110, 253, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 6,
-            pointHoverRadius: 8,
-            pointBackgroundColor: '#0d6efd'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false }
-        },
-        scales: {
-            x: { 
-                grid: { color: 'rgba(255,255,255,0.05)' }, 
-                ticks: { color: '#a0a0a0' } 
-            },
-            y: { 
-                grid: { color: 'rgba(255,255,255,0.05)' }, 
-                ticks: { color: '#a0a0a0' },
-                beginAtZero: true
-            }
-        }
-    }
-});
+(function () {
+    // ✅ Parse safe
+    let weeklyData = [];
+    let attackData = [];
 
-// Attack Type Chart
-const attackData = {{ attack_breakdown | tojson }};
-const attackCtx = document.getElementById('attackTypeChart').getContext('2d');
-new Chart(attackCtx, {
-    type: 'doughnut',
-    data: {
-        labels: attackData.map(d => d.type),
-        datasets: [{
-            data: attackData.map(d => d.count),
-            backgroundColor: [
-                '#dc3545', '#fd7e14', '#ffc107', '#198754', 
-                '#0d6efd', '#6f42c1', '#20c997', '#e83e8c'
-            ],
-            borderWidth: 0
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: { 
-                    color: '#a0a0a0',
-                    padding: 15,
-                    usePointStyle: true
+    try {
+        const wEl = document.getElementById('weekly-data-json');
+        weeklyData = wEl ? JSON.parse(wEl.textContent) : [];
+
+        const aEl = document.getElementById('attack-breakdown-json');
+        attackData = aEl ? JSON.parse(aEl.textContent) : [];
+    } catch (e) {
+        console.error('JSON parse error:', e);
+    }
+
+    if (!Array.isArray(weeklyData)) weeklyData = [];
+    if (!Array.isArray(attackData)) attackData = [];
+
+    // ---- Weekly Trend Chart ----
+    const weeklyEl = document.getElementById('weeklyTrendChart');
+    if (weeklyEl) {
+        if (weeklyData.length === 0) {
+            weeklyEl.parentElement.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;
+                            justify-content:center;height:300px;text-align:center;">
+                    <i class="bi bi-graph-up" style="font-size:3rem;color:#666;"></i>
+                    <p style="color:#a0a0a0;margin-top:1rem;">No weekly data</p>
+                </div>
+            `;
+        } else {
+            new Chart(weeklyEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: weeklyData.map(d => d.date || ''),
+                    datasets: [{
+                        label: 'Alerts',
+                        data: weeklyData.map(d => d.count || 0),
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#0d6efd'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#a0a0a0' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#a0a0a0' },
+                            beginAtZero: true
+                        }
+                    }
                 }
-            }
+            });
         }
     }
-});
+
+    // ---- Attack Type Chart ----
+    const attackEl = document.getElementById('attackTypeChart');
+    if (attackEl) {
+        if (attackData.length === 0) {
+            attackEl.parentElement.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;
+                            justify-content:center;height:300px;text-align:center;">
+                    <i class="bi bi-shield-check" style="font-size:3rem;color:#198754;"></i>
+                    <p style="color:#a0a0a0;margin-top:1rem;">No attacks detected</p>
+                </div>
+            `;
+        } else {
+            new Chart(attackEl.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: attackData.map(d => d.type || 'Unknown'),
+                    datasets: [{
+                        data: attackData.map(d => d.count || 0),
+                        backgroundColor: [
+                            '#dc3545', '#fd7e14', '#ffc107', '#198754',
+                            '#0d6efd', '#6f42c1', '#20c997', '#e83e8c'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#a0a0a0',
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+})();
 </script>
 {% endblock %}

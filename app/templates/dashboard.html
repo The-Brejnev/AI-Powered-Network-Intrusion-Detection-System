@@ -9,12 +9,12 @@
         <div class="grid-overlay"></div>
         <div class="scanning-beam"></div>
     </div>
-    
+
     <!-- Page Header -->
     <div class="page-header cyber-header">
         <div>
             <h1 class="page-title cyber-title">
-                <span class="title-icon">◈</span>
+                <span class="title-icon">&#9672;</span>
                 Command Center
             </h1>
             <p class="page-subtitle">Real-time neural network security monitoring</p>
@@ -25,13 +25,13 @@
                 <span class="pulse-dot"></span>
                 <span class="status-text">LIVE MONITORING</span>
             </span>
-            <button class="btn cyber-btn-refresh" onclick="refreshDashboard()">
+            <button type="button" class="btn cyber-btn-refresh" onclick="refreshDashboard()">
                 <i class="bi bi-arrow-clockwise"></i>
                 <span>SYNC</span>
             </button>
         </div>
     </div>
-    
+
     <!-- Stats Cards -->
     <div class="stats-row cyber-stats">
         <div class="stat-card cyber-card">
@@ -41,16 +41,19 @@
                 <div class="icon-pulse"></div>
             </div>
             <div class="stat-content">
-                <h3 id="total-flows" class="cyber-number">{{ stats.total_flows|format_number }}</h3>
+                <h3 id="total-flows" class="cyber-number">
+                    {{ (stats.total_flows or 0)|format_number }}
+                </h3>
                 <p>Network Flows</p>
             </div>
-            <div class="stat-trend {% if stats.flow_trend >= 0 %}up{% else %}down{% endif %}" id="flow-trend">
-                <i class="bi bi-arrow-{% if stats.flow_trend >= 0 %}up{% else %}down{% endif %}"></i> 
-                {{ stats.flow_trend|abs_value }}%
+            {% set flow_trend = stats.flow_trend if stats.flow_trend is not none else 0 %}
+            <div class="stat-trend {% if flow_trend >= 0 %}up{% else %}down{% endif %}" id="flow-trend">
+                <i class="bi bi-arrow-{% if flow_trend >= 0 %}up{% else %}down{% endif %}"></i>
+                {{ flow_trend|abs_value }}%
             </div>
             <div class="stat-sparkline" id="flows-spark"></div>
         </div>
-        
+
         <div class="stat-card cyber-card">
             <div class="card-glow orange"></div>
             <div class="stat-icon orange">
@@ -58,16 +61,19 @@
                 <div class="icon-pulse"></div>
             </div>
             <div class="stat-content">
-                <h3 id="total-alerts" class="cyber-number">{{ stats.total_alerts|format_number }}</h3>
+                <h3 id="total-alerts" class="cyber-number">
+                    {{ (stats.total_alerts or 0)|format_number }}
+                </h3>
                 <p>Threat Alerts</p>
             </div>
-            <div class="stat-trend {% if stats.alert_trend <= 0 %}down{% else %}up{% endif %}" id="alert-trend">
-                <i class="bi bi-arrow-{% if stats.alert_trend <= 0 %}down{% else %}up{% endif %}"></i> 
-                {{ stats.alert_trend|abs_value }}%
+            {% set alert_trend = stats.alert_trend if stats.alert_trend is not none else 0 %}
+            <div class="stat-trend {% if alert_trend <= 0 %}down{% else %}up{% endif %}" id="alert-trend">
+                <i class="bi bi-arrow-{% if alert_trend <= 0 %}down{% else %}up{% endif %}"></i>
+                {{ alert_trend|abs_value }}%
             </div>
             <div class="stat-sparkline" id="alerts-spark"></div>
         </div>
-        
+
         <div class="stat-card cyber-card critical">
             <div class="card-glow red"></div>
             <div class="stat-icon red">
@@ -75,12 +81,14 @@
                 <div class="icon-pulse"></div>
             </div>
             <div class="stat-content">
-                <h3 id="critical-alerts" class="cyber-number">{{ stats.critical_alerts }}</h3>
+                <h3 id="critical-alerts" class="cyber-number">
+                    {{ stats.critical_alerts or 0 }}
+                </h3>
                 <p>Critical Threats</p>
             </div>
             <div class="threat-indicator"></div>
         </div>
-        
+
         <div class="stat-card cyber-card">
             <div class="card-glow green"></div>
             <div class="stat-icon green">
@@ -88,15 +96,16 @@
                 <div class="icon-pulse"></div>
             </div>
             <div class="stat-content">
-                <h3 id="detection-rate" class="cyber-number">{{ stats.detection_rate }}%</h3>
+                {% set det_rate = stats.detection_rate if stats.detection_rate is not none else 0 %}
+                <h3 id="detection-rate" class="cyber-number">{{ det_rate }}%</h3>
                 <p>Detection Rate</p>
             </div>
             <div class="accuracy-bar">
-                <div class="accuracy-fill" id="accuracy-bar" style="width: {{ stats.detection_rate }}%"></div>
+                <div class="accuracy-fill" id="accuracy-bar" style="width: {{ det_rate }}%"></div>
             </div>
         </div>
     </div>
-    
+
     <!-- Main Content Grid -->
     <div class="dashboard-grid">
         <!-- Traffic Chart -->
@@ -123,7 +132,7 @@
                 <span>DATA STREAM ACTIVE</span>
             </div>
         </div>
-        
+
         <!-- Recent Alerts -->
         <div class="dashboard-card cyber-panel">
             <div class="panel-border"></div>
@@ -132,25 +141,33 @@
                     <span class="header-icon alert-icon"><i class="bi bi-bell"></i></span>
                     Threat Feed
                 </h3>
-                <a href="{{ url_for('alerts.alert_list') }}" class="cyber-link">VIEW ALL →</a>
+                <a href="{{ url_for('alerts.alert_list') }}" class="cyber-link">VIEW ALL &rarr;</a>
             </div>
             <div class="card-body">
                 <div class="alerts-list cyber-alerts" id="recent-alerts">
                     {% for alert in recent_alerts %}
-                    <div class="alert-item cyber-alert {{ alert.severity }}">
+                    <div class="alert-item cyber-alert {{ alert.severity or 'info' }}">
                         <div class="alert-severity-bar"></div>
                         <div class="alert-icon">
-                            {{ alert.severity_icon }}
+                            <i class="bi bi-{{ alert.severity_icon or 'info-circle' }}"></i>
                         </div>
                         <div class="alert-content">
                             <div class="alert-title">{{ alert.attack_type or 'Unknown Attack' }}</div>
                             <div class="alert-meta">
-                                <span class="ip-tag">{{ alert.source_ip }}</span>
-                                <span class="separator">│</span>
-                                <span class="time-tag">{{ alert.timestamp.strftime('%H:%M:%S') }}</span>
+                                <span class="ip-tag">{{ alert.source_ip or 'N/A' }}</span>
+                                <span class="separator">|</span>
+                                <span class="time-tag">
+                                    {% if alert.timestamp %}
+                                        {{ alert.timestamp.strftime('%H:%M:%S') }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </span>
                             </div>
                         </div>
-                        <span class="cyber-badge {{ alert.severity }}">{{ alert.severity | upper }}</span>
+                        <span class="cyber-badge {{ alert.severity or 'info' }}">
+                            {{ (alert.severity or 'info')|upper }}
+                        </span>
                     </div>
                     {% else %}
                     <div class="empty-state cyber-empty">
@@ -165,7 +182,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Attack Distribution -->
         <div class="dashboard-card cyber-panel">
             <div class="panel-border"></div>
@@ -179,7 +196,7 @@
                 <canvas id="attackChart" height="200"></canvas>
             </div>
         </div>
-        
+
         <!-- Top Source IPs -->
         <div class="dashboard-card cyber-panel">
             <div class="panel-border"></div>
@@ -192,18 +209,19 @@
             <div class="card-body">
                 <div class="ip-list cyber-ip-list">
                     {% for source in top_sources %}
+                    {% set count_pct = (source.count or 0) if (source.count or 0) < 100 else 100 %}
                     <div class="ip-item cyber-ip">
                         <div class="ip-rank">#{{ loop.index }}</div>
                         <div class="ip-address">
-                            <span class="ip-icon">⬢</span>
-                            {{ source.ip }}
+                            <span class="ip-icon"><i class="bi bi-hexagon-fill"></i></span>
+                            {{ source.ip or 'unknown' }}
                         </div>
                         <div class="ip-count">
-                            <span class="count-value">{{ source.count }}</span>
+                            <span class="count-value">{{ source.count or 0 }}</span>
                             <span class="count-label">alerts</span>
                         </div>
                         <div class="threat-bar">
-                            <div class="threat-fill" style="width: {{ source.count|clamp(0, 100) }}%"></div>
+                            <div class="threat-fill" style="width: {{ count_pct }}%"></div>
                         </div>
                     </div>
                     {% else %}
@@ -215,7 +233,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Severity Breakdown -->
         <div class="dashboard-card cyber-panel">
             <div class="panel-border"></div>
@@ -229,7 +247,7 @@
                 <canvas id="severityChart" height="200"></canvas>
             </div>
         </div>
-        
+
         <!-- System Status -->
         <div class="dashboard-card cyber-panel system-panel">
             <div class="panel-border"></div>
@@ -275,19 +293,21 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Cyber Dashboard Styles -->
+
+{% block extra_css %}
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap');
+/* =========================================================
+   CYBER DASHBOARD STYLES
+   ========================================================= */
 
-.cyber-dashboard {
-    position: relative;
-}
+.cyber-dashboard { position: relative; }
 
 .cyber-bg-elements {
     position: fixed;
     top: 0;
-    left: var(--sidebar-width);
+    left: var(--sidebar-width, 260px);
     right: 0;
     bottom: 0;
     pointer-events: none;
@@ -296,11 +316,8 @@
 
 .grid-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
         linear-gradient(rgba(0, 242, 254, 0.02) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0, 242, 254, 0.02) 1px, transparent 1px);
     background-size: 40px 40px;
@@ -308,9 +325,7 @@
 
 .scanning-beam {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.5), transparent);
     animation: scanBeam 8s linear infinite;
@@ -353,8 +368,7 @@
 .pulse-ring {
     position: absolute;
     left: 12px;
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     border: 1px solid #00f2fe;
     border-radius: 50%;
     animation: pulseRing 1.5s ease-out infinite;
@@ -366,8 +380,7 @@
 }
 
 .pulse-dot {
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     background: #00f2fe;
     border-radius: 50%;
     box-shadow: 0 0 10px #00f2fe;
@@ -408,9 +421,7 @@
 
 .card-glow {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 2px;
     opacity: 0.8;
 }
@@ -420,9 +431,7 @@
 .card-glow.red { background: linear-gradient(90deg, transparent, #ff4757, transparent); }
 .card-glow.green { background: linear-gradient(90deg, transparent, #00d26a, transparent); }
 
-.stat-card.cyber-card.critical {
-    animation: criticalPulse 2s ease-in-out infinite;
-}
+.stat-card.cyber-card.critical { animation: criticalPulse 2s ease-in-out infinite; }
 
 @keyframes criticalPulse {
     0%, 100% { box-shadow: 0 0 0 rgba(255, 71, 87, 0); }
@@ -431,11 +440,9 @@
 
 .stat-icon .icon-pulse {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     border-radius: 12px;
     animation: iconPulseBg 3s ease-in-out infinite;
 }
@@ -455,9 +462,7 @@
 
 .accuracy-bar {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 0; left: 0; right: 0;
     height: 3px;
     background: rgba(255, 255, 255, 0.1);
 }
@@ -470,10 +475,8 @@
 
 .threat-indicator {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 8px;
-    height: 8px;
+    top: 10px; right: 10px;
+    width: 8px; height: 8px;
     background: #ff4757;
     border-radius: 50%;
     animation: threatBlink 1s infinite;
@@ -492,9 +495,7 @@
 
 .panel-border {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.5), transparent);
 }
@@ -509,8 +510,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 24px; height: 24px;
     background: rgba(0, 242, 254, 0.1);
     border-radius: 5px;
     margin-right: 0.5rem;
@@ -543,15 +543,11 @@
     transition: all 0.3s ease;
 }
 
-.cyber-link:hover {
-    text-shadow: 0 0 10px #00f2fe;
-}
+.cyber-link:hover { text-shadow: 0 0 10px #00f2fe; }
 
 .panel-status {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 0; left: 0; right: 0;
     padding: 0.5rem 1rem;
     background: rgba(0, 0, 0, 0.2);
     border-top: 1px solid rgba(0, 242, 254, 0.1);
@@ -564,8 +560,7 @@
 }
 
 .status-indicator {
-    width: 6px;
-    height: 6px;
+    width: 6px; height: 6px;
     border-radius: 50%;
 }
 
@@ -598,9 +593,7 @@
 
 .alert-severity-bar {
     position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
+    left: 0; top: 0; bottom: 0;
     width: 3px;
     border-radius: 3px 0 0 3px;
 }
@@ -634,11 +627,9 @@
 .cyber-badge.high { background: rgba(255, 159, 67, 0.2); color: #ff9f43; border: 1px solid rgba(255, 159, 67, 0.3); }
 .cyber-badge.medium { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); }
 .cyber-badge.low { background: rgba(0, 210, 106, 0.2); color: #00d26a; border: 1px solid rgba(0, 210, 106, 0.3); }
+.cyber-badge.info { background: rgba(0, 242, 254, 0.2); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.3); }
 
-.cyber-empty {
-    text-align: center;
-    padding: 2rem;
-}
+.cyber-empty { text-align: center; padding: 2rem; }
 
 .cyber-empty .shield-icon {
     position: relative;
@@ -653,11 +644,9 @@
 
 .shield-pulse {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
+    width: 60px; height: 60px;
     border: 1px solid rgba(0, 242, 254, 0.3);
     border-radius: 50%;
     animation: shieldPulseAnim 2s ease-out infinite;
@@ -711,12 +700,10 @@
 
 .ip-icon {
     color: #ff4757;
-    font-size: 0.6rem;
+    font-size: 0.7rem;
 }
 
-.ip-count {
-    text-align: right;
-}
+.ip-count { text-align: right; }
 
 .count-value {
     font-family: 'Orbitron', 'Inter', sans-serif;
@@ -732,9 +719,7 @@
 
 .threat-bar {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 0; left: 0; right: 0;
     height: 2px;
     background: rgba(255, 255, 255, 0.05);
 }
@@ -771,9 +756,7 @@
 
 .system-uptime {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 0; left: 0; right: 0;
     padding: 0.5rem 1rem;
     background: rgba(0, 210, 106, 0.05);
     border-top: 1px solid rgba(0, 210, 106, 0.1);
@@ -794,233 +777,9 @@
     color: #00d26a;
 }
 
-.system-panel {
-    padding-bottom: 2.5rem;
-}
-</style>
-{% endblock %}
+.system-panel { padding-bottom: 2.5rem; }
 
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
-<script>
-    // Initialize dashboard
-    let trafficChart, attackChart, severityChart;
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        initTrafficChart();
-        initAttackChart();
-        initSeverityChart();
-        
-        // Auto-refresh every 30 seconds
-        setInterval(refreshDashboard, 30000);
-    });
-    
-    // Traffic Chart
-    function initTrafficChart() {
-        const ctx = document.getElementById('trafficChart');
-        if (!ctx) return;
-        
-        const trafficData = {{ traffic_data | tojson | safe if traffic_data else '{"labels":[],"flows":[]}' }};
-        
-        trafficChart = new Chart(ctx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: trafficData.labels || [],
-                datasets: [{
-                    label: 'Network Flows',
-                    data: trafficData.flows || [],
-                    borderColor: '#00f2fe',
-                    backgroundColor: 'rgba(0, 242, 254, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 6,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        grid: { color: 'rgba(0, 242, 254, 0.05)' },
-                        ticks: { color: '#666', font: { family: 'Orbitron', size: 9 }, maxRotation: 45 }
-                    },
-                    y: {
-                        grid: { color: 'rgba(0, 242, 254, 0.05)' },
-                        ticks: { color: '#666', font: { family: 'Orbitron', size: 9 } },
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-    
-    // Attack Distribution Chart
-    function initAttackChart() {
-        const ctx = document.getElementById('attackChart');
-        if (!ctx) return;
-        
-        const attackData = {{ attack_distribution | tojson | safe if attack_distribution else '{"labels":[],"values":[]}' }};
-        
-        // If no data, show placeholder
-        if (!attackData.labels || attackData.labels.length === 0) {
-            ctx.parentElement.innerHTML = `
-                <div class="empty-chart-state">
-                    <i class="bi bi-shield-check" style="font-size: 3rem; color: #00d26a;"></i>
-                    <p style="color: #a0a0a0; margin-top: 1rem;">No attacks detected</p>
-                    <span style="color: #666; font-size: 0.8rem;">Your network is secure</span>
-                </div>
-            `;
-            return;
-        }
-        
-        attackChart = new Chart(ctx.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: attackData.labels,
-                datasets: [{
-                    data: attackData.values,
-                    backgroundColor: [
-                        '#ff4757', '#ff9f43', '#ffc107', '#00d26a', '#00f2fe', '#a55eea', '#5f27cd', '#1dd1a1'
-                    ],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { 
-                            color: '#a0a0a0', 
-                            padding: 15,
-                            font: { family: 'Orbitron', size: 9 }
-                        }
-                    }
-                },
-                cutout: '65%'
-            }
-        });
-    }
-    
-    // Severity Chart
-    function initSeverityChart() {
-        const ctx = document.getElementById('severityChart');
-        if (!ctx) return;
-        
-        const severityData = {{ severity_data | tojson | safe if severity_data else '{"labels":["CRITICAL","HIGH","MEDIUM","LOW","INFO"],"values":[0,0,0,0,0]}' }};
-        
-        severityChart = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: severityData.labels || ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'],
-                datasets: [{
-                    data: severityData.values || [0, 0, 0, 0, 0],
-                    backgroundColor: ['#ff4757', '#ff9f43', '#ffc107', '#00d26a', '#00f2fe'],
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { 
-                        grid: { display: false }, 
-                        ticks: { color: '#666', font: { family: 'Orbitron', size: 8 } } 
-                    },
-                    y: { 
-                        grid: { color: 'rgba(0, 242, 254, 0.05)' }, 
-                        ticks: { color: '#666', font: { family: 'Orbitron', size: 9 } },
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-    
-    // Refresh Dashboard - SYNC BUTTON
-    function refreshDashboard() {
-        const syncBtn = document.querySelector('.cyber-btn-refresh');
-        if (syncBtn) {
-            syncBtn.classList.add('syncing');
-            syncBtn.innerHTML = '<i class="bi bi-arrow-repeat spinning"></i><span>SYNCING...</span>';
-        }
-        
-        fetch('/dashboard/sync')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update stats
-                    document.getElementById('total-flows').textContent = data.stats.total_flows.toLocaleString();
-                    document.getElementById('total-alerts').textContent = data.stats.total_alerts.toLocaleString();
-                    document.getElementById('critical-alerts').textContent = data.stats.critical_alerts.toLocaleString();
-                    document.getElementById('detection-rate').textContent = data.stats.detection_rate + '%';
-                    
-                    // Update accuracy bar
-                    const accBar = document.getElementById('accuracy-bar');
-                    if (accBar) accBar.style.width = data.stats.detection_rate + '%';
-                    
-                    // Update traffic chart
-                    if (trafficChart && data.traffic_data) {
-                        trafficChart.data.labels = data.traffic_data.labels;
-                        trafficChart.data.datasets[0].data = data.traffic_data.flows;
-                        trafficChart.update();
-                    }
-                    
-                    // Update severity chart
-                    if (severityChart && data.severity_data) {
-                        severityChart.data.datasets[0].data = data.severity_data.values;
-                        severityChart.update();
-                    }
-                    
-                    // Show success feedback
-                    showToast('Dashboard synchronized', 'success');
-                }
-            })
-            .catch(err => {
-                console.error('Sync error:', err);
-                showToast('Sync failed', 'error');
-            })
-            .finally(() => {
-                if (syncBtn) {
-                    syncBtn.classList.remove('syncing');
-                    syncBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i><span>SYNC</span>';
-                }
-            });
-    }
-    
-    function updateTrafficChart() {
-        const hours = document.getElementById('traffic-range').value;
-        fetch(`/dashboard/traffic?hours=${hours}`)
-            .then(response => response.json())
-            .then(data => {
-                if (trafficChart) {
-                    trafficChart.data.labels = data.labels;
-                    trafficChart.data.datasets[0].data = data.flows;
-                    trafficChart.update();
-                }
-            });
-    }
-    
-    function showToast(message, type) {
-        const toast = document.createElement('div');
-        toast.className = `cyber-toast ${type}`;
-        toast.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'}"></i> ${message}`;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-</script>
-
-<style>
+/* Toast + spinner */
 .cyber-btn-refresh.syncing { opacity: 0.7; pointer-events: none; }
 .spinning { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -1042,6 +801,7 @@
     transition: all 0.3s ease;
     z-index: 9999;
 }
+
 .cyber-toast.show { transform: translateY(0); opacity: 1; }
 .cyber-toast.success { border-color: #00d26a; }
 .cyber-toast.success i { color: #00d26a; }
@@ -1057,4 +817,240 @@
     text-align: center;
 }
 </style>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+    // =========================================================
+    // SAFE DATA PARSING (via script tags)
+    // =========================================================
+    const trafficData    = JSON.parse(document.getElementById('traffic-data-json').textContent);
+    const attackData     = JSON.parse(document.getElementById('attack-data-json').textContent);
+    const severityData   = JSON.parse(document.getElementById('severity-data-json').textContent);
+
+    let trafficChart, attackChart, severityChart;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initTrafficChart();
+        initAttackChart();
+        initSeverityChart();
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+    });
+
+    // ---- Traffic Chart ----
+    function initTrafficChart() {
+        const ctx = document.getElementById('trafficChart');
+        if (!ctx) return;
+
+        trafficChart = new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: trafficData.labels || [],
+                datasets: [{
+                    label: 'Network Flows',
+                    data: trafficData.flows || [],
+                    borderColor: '#00f2fe',
+                    backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(0, 242, 254, 0.05)' },
+                        ticks: { color: '#666', font: { family: 'Orbitron', size: 9 }, maxRotation: 45 }
+                    },
+                    y: {
+                        grid: { color: 'rgba(0, 242, 254, 0.05)' },
+                        ticks: { color: '#666', font: { family: 'Orbitron', size: 9 } },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- Attack Chart ----
+    function initAttackChart() {
+        const ctx = document.getElementById('attackChart');
+        if (!ctx) return;
+
+        if (!attackData.labels || attackData.labels.length === 0) {
+            ctx.parentElement.innerHTML = `
+                <div class="empty-chart-state">
+                    <i class="bi bi-shield-check" style="font-size: 3rem; color: #00d26a;"></i>
+                    <p style="color: #a0a0a0; margin-top: 1rem;">No attacks detected</p>
+                    <span style="color: #666; font-size: 0.8rem;">Your network is secure</span>
+                </div>
+            `;
+            return;
+        }
+
+        attackChart = new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: attackData.labels,
+                datasets: [{
+                    data: attackData.values,
+                    backgroundColor: [
+                        '#ff4757', '#ff9f43', '#ffc107', '#00d26a',
+                        '#00f2fe', '#a55eea', '#5f27cd', '#1dd1a1'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#a0a0a0',
+                            padding: 15,
+                            font: { family: 'Orbitron', size: 9 }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+
+    // ---- Severity Chart ----
+    function initSeverityChart() {
+        const ctx = document.getElementById('severityChart');
+        if (!ctx) return;
+
+        severityChart = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: severityData.labels || ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'],
+                datasets: [{
+                    data: severityData.values || [0, 0, 0, 0, 0],
+                    backgroundColor: ['#ff4757', '#ff9f43', '#ffc107', '#00d26a', '#00f2fe'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#666', font: { family: 'Orbitron', size: 8 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(0, 242, 254, 0.05)' },
+                        ticks: { color: '#666', font: { family: 'Orbitron', size: 9 } },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- Refresh Dashboard ----
+    function refreshDashboard() {
+        const syncBtn = document.querySelector('.cyber-btn-refresh');
+        if (syncBtn) {
+            syncBtn.classList.add('syncing');
+            syncBtn.innerHTML = '<i class="bi bi-arrow-repeat spinning"></i><span>SYNCING...</span>';
+        }
+
+        fetch('/dashboard/sync')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) throw new Error(data.error || 'Sync failed');
+
+                const s = data.stats || {};
+
+                // Update stats (avec fallback)
+                const setText = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = (val != null) ? val.toLocaleString() : '0';
+                };
+
+                setText('total-flows', s.total_flows);
+                setText('total-alerts', s.total_alerts);
+                setText('critical-alerts', s.critical_alerts);
+
+                const rateEl = document.getElementById('detection-rate');
+                if (rateEl) rateEl.textContent = (s.detection_rate || 0) + '%';
+
+                const accBar = document.getElementById('accuracy-bar');
+                if (accBar) accBar.style.width = (s.detection_rate || 0) + '%';
+
+                // Update charts
+                if (trafficChart && data.traffic_data) {
+                    trafficChart.data.labels = data.traffic_data.labels || [];
+                    trafficChart.data.datasets[0].data = data.traffic_data.flows || [];
+                    trafficChart.update();
+                }
+
+                if (severityChart && data.severity_data) {
+                    severityChart.data.datasets[0].data = data.severity_data.values || [];
+                    severityChart.update();
+                }
+
+                if (attackChart && data.attack_distribution &&
+                    attackChart.data) {
+                    attackChart.data.labels = data.attack_distribution.labels || [];
+                    attackChart.data.datasets[0].data = data.attack_distribution.values || [];
+                    attackChart.update();
+                }
+
+                showToast('Dashboard synchronized', 'success');
+            })
+            .catch(err => {
+                console.error('Sync error:', err);
+                showToast('Sync failed', 'error');
+            })
+            .finally(() => {
+                if (syncBtn) {
+                    syncBtn.classList.remove('syncing');
+                    syncBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i><span>SYNC</span>';
+                }
+            });
+    }
+
+    function updateTrafficChart() {
+        const sel = document.getElementById('traffic-range');
+        if (!sel) return;
+        const hours = sel.value;
+
+        fetch(`/dashboard/traffic?hours=${hours}`)
+            .then(r => r.json())
+            .then(data => {
+                if (trafficChart) {
+                    trafficChart.data.labels = data.labels || [];
+                    trafficChart.data.datasets[0].data = data.flows || [];
+                    trafficChart.update();
+                }
+            })
+            .catch(err => console.error('Traffic update error:', err));
+    }
+
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `cyber-toast ${type}`;
+        toast.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'}"></i> ${message}`;
+        document.body.appendChild(toast);
+
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+</script>
 {% endblock %}

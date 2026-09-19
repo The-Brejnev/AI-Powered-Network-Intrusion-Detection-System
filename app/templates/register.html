@@ -50,12 +50,12 @@
             </div>
             
             <div class="form-group">
-                <label for="confirm_password" class="form-label">Confirm Password</label>
+                <label for="password2" class="form-label">Confirm Password</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                    {{ form.confirm_password(class="form-control", placeholder="Confirm password") }}
+                    {{ form.password2(class="form-control", placeholder="Confirm password") }}
                 </div>
-                {% for error in form.confirm_password.errors %}
+                {% for error in form.password2.errors %}
                 <div class="invalid-feedback d-block">{{ error }}</div>
                 {% endfor %}
             </div>

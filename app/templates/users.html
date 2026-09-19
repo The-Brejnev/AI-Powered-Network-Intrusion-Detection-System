@@ -12,7 +12,8 @@
         <p class="page-subtitle">Manage system users, roles and permissions</p>
     </div>
     <div class="header-actions">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <button type="button" class="btn btn-primary"
+                data-bs-toggle="modal" data-bs-target="#addUserModal">
             <i class="bi bi-person-plus-fill me-2"></i>Add User
         </button>
     </div>
@@ -21,38 +22,30 @@
 <!-- Stats Cards -->
 <div class="stats-grid mb-4">
     <div class="stat-card">
-        <div class="stat-icon blue">
-            <i class="bi bi-people-fill"></i>
-        </div>
+        <div class="stat-icon blue"><i class="bi bi-people-fill"></i></div>
         <div class="stat-content">
-            <h3>{{ users|length }}</h3>
+            <h3>{{ (users or []) | length }}</h3>
             <p>Total Users</p>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon green">
-            <i class="bi bi-person-check-fill"></i>
-        </div>
+        <div class="stat-icon green"><i class="bi bi-person-check-fill"></i></div>
         <div class="stat-content">
-            <h3>{{ users|selectattr('is_active')|list|length }}</h3>
+            <h3>{{ (users or []) | selectattr('is_active') | list | length }}</h3>
             <p>Active Users</p>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon purple">
-            <i class="bi bi-shield-fill-check"></i>
-        </div>
+        <div class="stat-icon purple"><i class="bi bi-shield-fill-check"></i></div>
         <div class="stat-content">
-            <h3>{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h3>
+            <h3>{{ (users or []) | selectattr('role', 'equalto', 'admin') | list | length }}</h3>
             <p>Administrators</p>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon orange">
-            <i class="bi bi-clock-history"></i>
-        </div>
+        <div class="stat-icon orange"><i class="bi bi-clock-history"></i></div>
         <div class="stat-content">
-            <h3>{{ users|selectattr('last_login')|list|length }}</h3>
+            <h3>{{ (users or []) | selectattr('last_login') | list | length }}</h3>
             <p>Active Today</p>
         </div>
     </div>
@@ -82,53 +75,75 @@
             </thead>
             <tbody>
                 {% for user in users %}
+                {% set role = (user.role or 'viewer')|lower %}
                 <tr class="user-row">
                     <td>
                         <div class="d-flex align-items-center">
-                            <div class="avatar-circle me-3">{{ user.username[0]|upper }}</div>
+                            <div class="avatar-circle me-3">
+                                {{ (user.username or '?')[0]|upper }}
+                            </div>
                             <div>
-                                <strong>{{ user.username }}</strong>
+                                <strong>{{ user.username or 'Unknown' }}</strong>
                                 {% if user.id == current_user.id %}
                                 <span class="badge bg-info ms-1">You</span>
                                 {% endif %}
                             </div>
                         </div>
                     </td>
-                    <td><code>{{ user.email }}</code></td>
+                    <td><code>{{ user.email or 'N/A' }}</code></td>
                     <td>
-                        <span class="badge role-{{ user.role }}">
-                            {{ user.role|title }}
+                        <span class="badge role-{{ role }}">
+                            {{ role|title }}
                         </span>
                     </td>
                     <td>
                         {% if user.is_active %}
-                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle me-1"></i>Active
+                        </span>
                         {% else %}
-                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                        <span class="badge bg-danger">
+                            <i class="bi bi-x-circle me-1"></i>Inactive
+                        </span>
                         {% endif %}
                     </td>
                     <td>
                         {% if user.last_login %}
-                        {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
+                            {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
                         {% else %}
-                        <span class="text-muted">Never</span>
+                            <span class="text-muted">Never</span>
                         {% endif %}
                     </td>
-                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if user.created_at %}
+                            {{ user.created_at.strftime('%Y-%m-%d') }}
+                        {% else %}
+                            <span class="text-muted">--</span>
+                        {% endif %}
+                    </td>
                     <td>
                         <div class="btn-group">
                             {% if user.id != current_user.id %}
-                            <form action="{{ url_for('auth.toggle_user_active', user_id=user.id) }}" method="POST" class="d-inline">
+                            <form action="{{ url_for('auth.toggle_user_active', user_id=user.id) }}"
+                                  method="POST" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-{{ 'warning' if user.is_active else 'success' }}">
+                                <button type="submit"
+                                        class="btn btn-sm btn-{{ 'warning' if user.is_active else 'success' }}"
+                                        title="{{ 'Deactivate' if user.is_active else 'Activate' }}">
                                     <i class="bi bi-{{ 'pause' if user.is_active else 'play' }}"></i>
                                 </button>
                             </form>
-                            <button class="btn btn-sm btn-info" onclick="showRoleModal({{ user.id }}, '{{ user.role }}')">
+
+                            {# ✅ FIX : rôle passé en data-attribute (évite XSS) #}
+                            <button type="button" class="btn btn-sm btn-info"
+                                    data-user-id="{{ user.id }}"
+                                    data-user-role="{{ role }}"
+                                    onclick="showRoleModal(this)">
                                 <i class="bi bi-person-gear"></i>
                             </button>
                             {% endif %}
-                            <button class="btn btn-sm btn-secondary">
+
+                            <button type="button" class="btn btn-sm btn-secondary">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
@@ -152,15 +167,20 @@
     <div class="modal-dialog">
         <div class="modal-content bg-dark">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Add New User</h5>
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus me-2"></i>Add New User
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+
+            {# ✅ FIX : renommer confirm_password → password2 (cohérent avec forms.py) #}
             <form action="{{ url_for('auth.register') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-control" required>
+                        <input type="text" name="username" class="form-control"
+                               minlength="3" maxlength="64" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Email</label>
@@ -168,11 +188,14 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <input type="password" name="password" class="form-control"
+                               minlength="8" required>
+                        <small class="text-muted">Minimum 8 characters</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Confirm Password</label>
-                        <input type="password" name="confirm_password" class="form-control" required>
+                        <input type="password" name="password2" class="form-control"
+                               minlength="8" required>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
@@ -209,83 +232,109 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+
+{% block extra_css %}
 <style>
 .avatar-circle {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--purple));
+    background: linear-gradient(135deg, var(--primary, #0d6efd), var(--purple, #6f42c1));
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
+    color: #fff;
 }
 
-.role-admin { background: linear-gradient(135deg, #dc3545, #fd7e14); }
-.role-analyst { background: linear-gradient(135deg, #0d6efd, #6f42c1); }
-.role-viewer { background: linear-gradient(135deg, #198754, #20c997); }
+.role-admin    { background: linear-gradient(135deg, #dc3545, #fd7e14); color: #fff; }
+.role-analyst  { background: linear-gradient(135deg, #0d6efd, #6f42c1); color: #fff; }
+.role-viewer   { background: linear-gradient(135deg, #198754, #20c997); color: #fff; }
 
-.search-box {
-    position: relative;
-}
+.search-box { position: relative; }
 
 .search-box i {
     position: absolute;
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-muted);
+    color: var(--text-muted, #666);
 }
 
 .search-box input {
     padding-left: 36px;
-    background: var(--bg-dark);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
+    background: var(--bg-dark, #0d0d12);
+    border: 1px solid var(--border-color, #2a2a3a);
+    color: var(--text-primary, #fff);
     width: 200px;
 }
 
-.table { color: var(--text-primary); }
+.table { color: var(--text-primary, #fff); }
+
 .table thead th {
-    background: var(--bg-dark);
-    border-color: var(--border-color);
-    color: var(--text-secondary);
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--border-color, #2a2a3a);
+    color: var(--text-secondary, #a0a0a0);
     font-weight: 500;
     text-transform: uppercase;
     font-size: 0.75rem;
 }
+
 .table tbody td {
-    border-color: var(--border-color);
+    border-color: var(--border-color, #2a2a3a);
     vertical-align: middle;
 }
-.user-row:hover { background: var(--bg-hover); }
+
+.user-row:hover { background: var(--bg-hover, #1f1f2e); }
 
 .form-control, .form-select {
-    background: var(--bg-dark);
-    border-color: var(--border-color);
-    color: var(--text-primary);
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--border-color, #2a2a3a);
+    color: var(--text-primary, #fff);
 }
+
 .form-control:focus, .form-select:focus {
-    background: var(--bg-dark);
-    border-color: var(--primary);
-    color: var(--text-primary);
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--primary, #0d6efd);
+    color: var(--text-primary, #fff);
 }
 </style>
+{% endblock %}
 
+
+{% block extra_js %}
 <script>
-function showRoleModal(userId, currentRole) {
-    const modal = new bootstrap.Modal(document.getElementById('roleModal'));
-    document.getElementById('roleForm').action = `/auth/users/${userId}/change-role`;
-    document.getElementById('roleSelect').value = currentRole;
-    modal.show();
-}
+(function () {
+    // ✅ Safe : rôle lu depuis data-attribute (pas d'injection possible)
+    window.showRoleModal = function (btn) {
+        const userId = btn.getAttribute('data-user-id');
+        const currentRole = btn.getAttribute('data-user-role') || 'viewer';
 
-document.getElementById('userSearch').addEventListener('input', function() {
-    const term = this.value.toLowerCase();
-    document.querySelectorAll('.user-row').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-    });
-});
+        const modalEl = document.getElementById('roleModal');
+        const formEl  = document.getElementById('roleForm');
+        const selEl   = document.getElementById('roleSelect');
+
+        if (!modalEl || !formEl || !selEl) return;
+
+        formEl.action = `/auth/users/${userId}/change-role`;
+        selEl.value = currentRole;
+
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    };
+
+    // Recherche live
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            const term = (this.value || '').toLowerCase().trim();
+            document.querySelectorAll('.user-row').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        });
+    }
+})();
 </script>
 {% endblock %}

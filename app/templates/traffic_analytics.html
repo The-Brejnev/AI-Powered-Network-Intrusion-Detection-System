@@ -13,15 +13,17 @@
     </div>
     <div class="header-actions">
         <select class="form-select time-filter" id="time-range">
-            <option value="1" {% if days == 1 %}selected{% endif %}>Last 24 Hours</option>
-            <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 Days</option>
+            <option value="1"  {% if days == 1  %}selected{% endif %}>Last 24 Hours</option>
+            <option value="7"  {% if days == 7  %}selected{% endif %}>Last 7 Days</option>
             <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
         </select>
-        <a href="{{ url_for('analytics.export_data', data_type='flows', days=days) }}" class="btn btn-export">
-            <i class="bi bi-download"></i>Export Data
+        <a href="{{ url_for('analytics.export_data', data_type='flows', days=days or 7) }}"
+           class="btn btn-export">
+            <i class="bi bi-download"></i> Export Data
         </a>
-        <a href="{{ url_for('analytics.export_pdf_report', days=days) }}" class="btn btn-report">
-            <i class="bi bi-file-earmark-pdf"></i>Generate Report
+        <a href="{{ url_for('analytics.export_pdf_report', days=days or 7) }}"
+           class="btn btn-report">
+            <i class="bi bi-file-earmark-pdf"></i> Generate Report
         </a>
     </div>
 </div>
@@ -33,34 +35,40 @@
             <i class="bi bi-arrow-left-right"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ traffic_data.total_flows | default(0) | int }}</h3>
+            <h3>{{ (traffic_data.total_flows if traffic_data else 0) or 0 }}</h3>
             <p>Total Flows</p>
         </div>
     </div>
+
     <div class="stat-card">
         <div class="stat-icon green">
             <i class="bi bi-cloud-download"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ "%.2f" | format(traffic_data.total_bytes_in | default(0) / 1073741824) }} GB</h3>
+            {# ✅ Conversion safe + division protégée #}
+            {% set bytes_in = (traffic_data.total_bytes_in if traffic_data else 0) or 0 %}
+            <h3>{{ "%.2f" | format(bytes_in / 1073741824) }} GB</h3>
             <p>Inbound Traffic</p>
         </div>
     </div>
+
     <div class="stat-card">
         <div class="stat-icon orange">
             <i class="bi bi-cloud-upload"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ "%.2f" | format(traffic_data.total_bytes_out | default(0) / 1073741824) }} GB</h3>
+            {% set bytes_out = (traffic_data.total_bytes_out if traffic_data else 0) or 0 %}
+            <h3>{{ "%.2f" | format(bytes_out / 1073741824) }} GB</h3>
             <p>Outbound Traffic</p>
         </div>
     </div>
+
     <div class="stat-card">
         <div class="stat-icon purple">
             <i class="bi bi-pc-display"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ traffic_data.unique_ips | default(0) }}</h3>
+            <h3>{{ (traffic_data.unique_ips if traffic_data else 0) or 0 }}</h3>
             <p>Unique IPs</p>
         </div>
     </div>
@@ -76,7 +84,7 @@
             <canvas id="trafficChart" height="300"></canvas>
         </div>
     </div>
-    
+
     <div class="chart-card">
         <div class="card-header">
             <h3><i class="bi bi-pie-chart"></i> Protocol Distribution</h3>
@@ -106,14 +114,17 @@
                 </tr>
             </thead>
             <tbody>
-                {% for flow in traffic_data.top_talkers[:10] %}
+                {% set talkers = (traffic_data.top_talkers if traffic_data else []) or [] %}
+                {% for flow in talkers[:10] %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    <td><code>{{ flow.src_ip }}</code></td>
-                    <td><code>{{ flow.dst_ip }}</code></td>
-                    <td><span class="badge bg-info">{{ flow.protocol }}</span></td>
-                    <td>{{ flow.bytes | filesizeformat }}</td>
-                    <td>{{ flow.packets }}</td>
+                    <td><code>{{ flow.src_ip or 'N/A' }}</code></td>
+                    <td><code>{{ flow.dst_ip or 'N/A' }}</code></td>
+                    <td>
+                        <span class="badge bg-info">{{ flow.protocol or 'Unknown' }}</span>
+                    </td>
+                    <td>{{ (flow.bytes or 0) | filesizeformat }}</td>
+                    <td>{{ flow.packets or 0 }}</td>
                     <td><span class="badge bg-success">Normal</span></td>
                 </tr>
                 {% else %}
@@ -128,64 +139,135 @@
         </table>
     </div>
 </div>
-
 {% endblock %}
+
 
 {% block extra_js %}
+{# ✅ JSON injecté via script tags (safe) #}
+<script id="timeline-labels-json" type="application/json">
+{{ ((traffic_data.timeline_labels if traffic_data else []) or []) | tojson }}
+</script>
+<script id="timeline-inbound-json" type="application/json">
+{{ ((traffic_data.timeline_inbound if traffic_data else []) or []) | tojson }}
+</script>
+<script id="timeline-outbound-json" type="application/json">
+{{ ((traffic_data.timeline_outbound if traffic_data else []) or []) | tojson }}
+</script>
+<script id="protocol-labels-json" type="application/json">
+{{ ((traffic_data.protocol_labels if traffic_data else ['TCP','UDP','ICMP','Other']) or ['TCP','UDP','ICMP','Other']) | tojson }}
+</script>
+<script id="protocol-values-json" type="application/json">
+{{ ((traffic_data.protocol_values if traffic_data else [0,0,0,0]) or [0,0,0,0]) | tojson }}
+</script>
+
 <script>
-// Traffic Over Time Chart
-const trafficCtx = document.getElementById('trafficChart').getContext('2d');
-new Chart(trafficCtx, {
-    type: 'line',
-    data: {
-        labels: {{ traffic_data.timeline_labels | default([]) | tojson }},
-        datasets: [{
-            label: 'Inbound',
-            data: {{ traffic_data.timeline_inbound | default([]) | tojson }},
-            borderColor: '#0d6efd',
-            backgroundColor: 'rgba(13, 110, 253, 0.1)',
-            fill: true,
-            tension: 0.4
-        }, {
-            label: 'Outbound',
-            data: {{ traffic_data.timeline_outbound | default([]) | tojson }},
-            borderColor: '#fd7e14',
-            backgroundColor: 'rgba(253, 126, 20, 0.1)',
-            fill: true,
-            tension: 0.4
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#a0a0a0' } } },
-        scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
+(function () {
+    function readJson(id, fallback) {
+        try {
+            const el = document.getElementById(id);
+            if (!el) return fallback;
+            const parsed = JSON.parse(el.textContent);
+            return parsed != null ? parsed : fallback;
+        } catch (e) {
+            console.error('JSON parse error for', id, e);
+            return fallback;
         }
     }
-});
 
-// Protocol Distribution Chart
-const protocolCtx = document.getElementById('protocolChart').getContext('2d');
-new Chart(protocolCtx, {
-    type: 'doughnut',
-    data: {
-        labels: {{ traffic_data.protocol_labels | default(['TCP', 'UDP', 'ICMP', 'Other']) | tojson }},
-        datasets: [{
-            data: {{ traffic_data.protocol_values | default([45, 30, 15, 10]) | tojson }},
-            backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#6f42c1']
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { color: '#a0a0a0' } } }
+    const labels        = readJson('timeline-labels-json', []);
+    const inbound       = readJson('timeline-inbound-json', []);
+    const outbound      = readJson('timeline-outbound-json', []);
+    const protoLabels   = readJson('protocol-labels-json', ['TCP','UDP','ICMP','Other']);
+    const protoValues   = readJson('protocol-values-json', [0, 0, 0, 0]);
+
+    // ---- Traffic Over Time ----
+    const trafficEl = document.getElementById('trafficChart');
+    if (trafficEl) {
+        if (!Array.isArray(labels) || labels.length === 0) {
+            trafficEl.parentElement.innerHTML =
+                '<div class="empty-chart-state" ' +
+                'style="display:flex;flex-direction:column;align-items:center;' +
+                'justify-content:center;height:300px;text-align:center;">' +
+                '<i class="bi bi-graph-up" style="font-size:3rem;color:#666;"></i>' +
+                '<p style="color:#a0a0a0;margin-top:1rem;">No traffic data</p></div>';
+        } else {
+            new Chart(trafficEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Inbound (MB)',
+                            data: inbound,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Outbound (MB)',
+                            data: outbound,
+                            borderColor: '#fd7e14',
+                            backgroundColor: 'rgba(253, 126, 20, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#a0a0a0' } } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
+                    }
+                }
+            });
+        }
     }
-});
 
-document.getElementById('time-range').addEventListener('change', function() {
-    window.location.href = '?days=' + this.value;
-});
+    // ---- Protocol Distribution ----
+    const protoEl = document.getElementById('protocolChart');
+    if (protoEl) {
+        const allZero = Array.isArray(protoValues) &&
+                        protoValues.every(v => !v || v === 0);
+
+        if (!Array.isArray(protoLabels) || protoLabels.length === 0 || allZero) {
+            protoEl.parentElement.innerHTML =
+                '<div class="empty-chart-state" ' +
+                'style="display:flex;flex-direction:column;align-items:center;' +
+                'justify-content:center;height:300px;text-align:center;">' +
+                '<i class="bi bi-pie-chart" style="font-size:3rem;color:#666;"></i>' +
+                '<p style="color:#a0a0a0;margin-top:1rem;">No protocol data</p></div>';
+        } else {
+            new Chart(protoEl.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: protoLabels,
+                    datasets: [{
+                        data: protoValues,
+                        backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#6f42c1']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#a0a0a0' } }
+                    }
+                }
+            });
+        }
+    }
+
+    // ---- Time range ----
+    const rangeEl = document.getElementById('time-range');
+    if (rangeEl) {
+        rangeEl.addEventListener('change', function () {
+            window.location.href = '?days=' + this.value;
+        });
+    }
+})();
 </script>
-{% endblock %}
+{% endblock %}s

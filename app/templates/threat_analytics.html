@@ -13,11 +13,12 @@
     </div>
     <div class="header-actions">
         <select class="form-select time-filter" id="time-range">
-            <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 Days</option>
+            <option value="7"  {% if days == 7  %}selected{% endif %}>Last 7 Days</option>
             <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
             <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
         </select>
-        <a href="{{ url_for('analytics.export_pdf_report', days=days) }}" class="btn btn-pdf-report">
+        <a href="{{ url_for('analytics.export_pdf_report', days=days or 30) }}"
+           class="btn btn-pdf-report">
             <i class="bi bi-file-earmark-pdf me-2"></i>Generate PDF Report
         </a>
     </div>
@@ -30,7 +31,7 @@
             <i class="bi bi-shield-exclamation"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ threat_data.total_threats | default(0) }}</h3>
+            <h3>{{ (threat_data.total_threats if threat_data else 0) or 0 }}</h3>
             <p>Total Threats</p>
         </div>
     </div>
@@ -39,7 +40,7 @@
             <i class="bi bi-exclamation-triangle"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ threat_data.critical_count | default(0) }}</h3>
+            <h3>{{ (threat_data.critical_count if threat_data else 0) or 0 }}</h3>
             <p>Critical Alerts</p>
         </div>
     </div>
@@ -48,7 +49,7 @@
             <i class="bi bi-geo-alt"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ threat_data.unique_sources | default(0) }}</h3>
+            <h3>{{ (threat_data.unique_sources if threat_data else 0) or 0 }}</h3>
             <p>Unique Sources</p>
         </div>
     </div>
@@ -57,7 +58,7 @@
             <i class="bi bi-shield-check"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ threat_data.blocked_count | default(0) }}</h3>
+            <h3>{{ (threat_data.blocked_count if threat_data else 0) or 0 }}</h3>
             <p>Blocked Attacks</p>
         </div>
     </div>
@@ -73,7 +74,7 @@
             <canvas id="attackTypesChart" height="300"></canvas>
         </div>
     </div>
-    
+
     <div class="chart-card">
         <div class="card-header">
             <h3><i class="bi bi-graph-up-arrow"></i> Threat Trend</h3>
@@ -103,24 +104,38 @@
                 </tr>
             </thead>
             <tbody>
-                {% for threat in threat_data.recent_threats[:10] %}
+                {% set threats = (threat_data.recent_threats if threat_data else []) or [] %}
+                {% for threat in threats[:10] %}
                 <tr>
-                    <td>{{ threat.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td><span class="badge bg-danger">{{ threat.attack_type }}</span></td>
-                    <td><code>{{ threat.source_ip }}</code></td>
-                    <td><code>{{ threat.target }}</code></td>
                     <td>
-                        {% if threat.severity == 'critical' %}
-                        <span class="badge bg-danger">Critical</span>
-                        {% elif threat.severity == 'high' %}
-                        <span class="badge bg-orange">High</span>
+                        {% if threat.timestamp %}
+                            {{ threat.timestamp.strftime('%Y-%m-%d %H:%M') }}
                         {% else %}
-                        <span class="badge bg-warning">Medium</span>
+                            --
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-danger">
+                            {{ threat.attack_type or 'Unknown' }}
+                        </span>
+                    </td>
+                    <td><code>{{ threat.source_ip or 'N/A' }}</code></td>
+                    <td><code>{{ threat.target or 'N/A' }}</code></td>
+                    <td>
+                        {% set sev = (threat.severity or 'medium')|lower %}
+                        {% if sev == 'critical' %}
+                            <span class="badge bg-danger">Critical</span>
+                        {% elif sev == 'high' %}
+                            <span class="badge bg-orange">High</span>
+                        {% elif sev == 'low' %}
+                            <span class="badge bg-success">Low</span>
+                        {% else %}
+                            <span class="badge bg-warning">Medium</span>
                         {% endif %}
                     </td>
                     <td><span class="badge bg-success">Mitigated</span></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary">
+                        <button type="button" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-eye"></i>
                         </button>
                     </td>
@@ -138,7 +153,7 @@
     </div>
 </div>
 
-<!-- MITRE ATT&CK Heatmap -->
+<!-- MITRE ATT&CK Coverage (statique - décoratif) -->
 <div class="chart-card full-width">
     <div class="card-header">
         <h3><i class="bi bi-grid-3x3"></i> MITRE ATT&CK Coverage</h3>
@@ -180,7 +195,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+
+{% block extra_css %}
 <style>
 .mitre-heatmap {
     display: grid;
@@ -189,7 +207,7 @@
 }
 
 .mitre-tactic h6 {
-    color: var(--text-secondary);
+    color: var(--text-secondary, #a0a0a0);
     font-size: 0.85rem;
     margin-bottom: 0.75rem;
     text-transform: uppercase;
@@ -207,91 +225,150 @@
     border-radius: 6px;
     font-size: 0.8rem;
     font-family: 'JetBrains Mono', monospace;
-    background: var(--bg-hover);
-    color: var(--text-muted);
+    background: var(--bg-hover, #1f1f2e);
+    color: var(--text-muted, #666);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .technique:hover {
-    background: var(--primary);
+    background: var(--primary, #0d6efd);
     color: white;
 }
 
 .technique.detected {
     background: rgba(220, 53, 69, 0.2);
-    color: var(--danger);
-    border: 1px solid var(--danger);
+    color: var(--danger, #dc3545);
+    border: 1px solid var(--danger, #dc3545);
 }
 
 .bg-orange {
     background-color: #fd7e14 !important;
 }
 </style>
-
 {% endblock %}
 
+
 {% block extra_js %}
+{# ✅ JSON injecté via script tags (safe) #}
+<script id="attack-labels-json" type="application/json">
+{{ ((threat_data.attack_labels if threat_data else ['DDoS','Port Scan','Brute Force','SQL Injection','XSS','Malware']) or []) | tojson }}
+</script>
+<script id="attack-values-json" type="application/json">
+{{ ((threat_data.attack_values if threat_data else [12,8,5,3,2,1]) or []) | tojson }}
+</script>
+<script id="trend-labels-json" type="application/json">
+{{ ((threat_data.trend_labels if threat_data else ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']) or []) | tojson }}
+</script>
+<script id="trend-values-json" type="application/json">
+{{ ((threat_data.trend_values if threat_data else [5,8,3,12,6,2,4]) or []) | tojson }}
+</script>
+
 <script>
-// Attack Types Chart
-const attackCtx = document.getElementById('attackTypesChart').getContext('2d');
-new Chart(attackCtx, {
-    type: 'bar',
-    data: {
-        labels: {{ threat_data.attack_labels | default(['DDoS', 'Port Scan', 'Brute Force', 'SQL Injection', 'XSS', 'Malware']) | tojson }},
-        datasets: [{
-            label: 'Attacks',
-            data: {{ threat_data.attack_values | default([12, 8, 5, 3, 2, 1]) | tojson }},
-            backgroundColor: [
-                'rgba(220, 53, 69, 0.8)',
-                'rgba(253, 126, 20, 0.8)',
-                'rgba(255, 193, 7, 0.8)',
-                'rgba(111, 66, 193, 0.8)',
-                'rgba(13, 110, 253, 0.8)',
-                'rgba(32, 201, 151, 0.8)'
-            ],
-            borderRadius: 8
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-            x: { grid: { display: false }, ticks: { color: '#a0a0a0' } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
+(function () {
+    function readJson(id, fallback) {
+        try {
+            const el = document.getElementById(id);
+            if (!el) return fallback;
+            const parsed = JSON.parse(el.textContent);
+            return parsed != null ? parsed : fallback;
+        } catch (e) {
+            console.error('JSON parse error for', id, e);
+            return fallback;
         }
     }
-});
 
-// Threat Trend Chart
-const trendCtx = document.getElementById('threatTrendChart').getContext('2d');
-new Chart(trendCtx, {
-    type: 'line',
-    data: {
-        labels: {{ threat_data.trend_labels | default(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) | tojson }},
-        datasets: [{
-            label: 'Threats',
-            data: {{ threat_data.trend_values | default([5, 8, 3, 12, 6, 2, 4]) | tojson }},
-            borderColor: '#dc3545',
-            backgroundColor: 'rgba(220, 53, 69, 0.1)',
-            fill: true,
-            tension: 0.4
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
+    const attackLabels = readJson('attack-labels-json', []);
+    const attackValues = readJson('attack-values-json', []);
+    const trendLabels  = readJson('trend-labels-json', []);
+    const trendValues  = readJson('trend-values-json', []);
+
+    // ---- Attack Types Chart ----
+    const attackEl = document.getElementById('attackTypesChart');
+    if (attackEl) {
+        if (!Array.isArray(attackLabels) || attackLabels.length === 0) {
+            attackEl.parentElement.innerHTML =
+                '<div class="empty-chart-state" ' +
+                'style="display:flex;flex-direction:column;align-items:center;' +
+                'justify-content:center;height:300px;text-align:center;">' +
+                '<i class="bi bi-shield-check" style="font-size:3rem;color:#198754;"></i>' +
+                '<p style="color:#a0a0a0;margin-top:1rem;">No attacks detected</p></div>';
+        } else {
+            new Chart(attackEl.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: attackLabels,
+                    datasets: [{
+                        label: 'Attacks',
+                        data: attackValues,
+                        backgroundColor: [
+                            'rgba(220, 53, 69, 0.8)',
+                            'rgba(253, 126, 20, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(111, 66, 193, 0.8)',
+                            'rgba(13, 110, 253, 0.8)',
+                            'rgba(32, 201, 151, 0.8)'
+                        ],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#a0a0a0' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
+                    }
+                }
+            });
         }
     }
-});
 
-document.getElementById('time-range').addEventListener('change', function() {
-    window.location.href = '?days=' + this.value;
-});
+    // ---- Threat Trend Chart ----
+    const trendEl = document.getElementById('threatTrendChart');
+    if (trendEl) {
+        if (!Array.isArray(trendLabels) || trendLabels.length === 0) {
+            trendEl.parentElement.innerHTML =
+                '<div class="empty-chart-state" ' +
+                'style="display:flex;flex-direction:column;align-items:center;' +
+                'justify-content:center;height:300px;text-align:center;">' +
+                '<i class="bi bi-graph-up" style="font-size:3rem;color:#666;"></i>' +
+                '<p style="color:#a0a0a0;margin-top:1rem;">No trend data</p></div>';
+        } else {
+            new Chart(trendEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: 'Threats',
+                        data: trendValues,
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
+                    }
+                }
+            });
+        }
+    }
+
+    // ---- Time range selector ----
+    const rangeEl = document.getElementById('time-range');
+    if (rangeEl) {
+        rangeEl.addEventListener('change', function () {
+            window.location.href = '?days=' + this.value;
+        });
+    }
+})();
 </script>
 {% endblock %}

@@ -8,7 +8,7 @@
         <h1 class="page-title">Profile Settings</h1>
         <p class="page-subtitle">Manage your account and preferences</p>
     </div>
-    
+
     <div class="profile-grid">
         <!-- Profile Info Card -->
         <div class="profile-card">
@@ -22,24 +22,37 @@
                     </div>
                     <div class="avatar-info">
                         <h4>{{ current_user.username }}</h4>
-                        <span class="badge bg-{{ 'success' if current_user.role == 'admin' else 'primary' }}">
-                            {{ current_user.role|title }}
+                        {% set role = (current_user.role or 'viewer')|lower %}
+                        <span class="badge bg-{{ 'success' if role == 'admin' else 'primary' }}">
+                            {{ role|title }}
                         </span>
                     </div>
                 </div>
-                
+
                 <div class="profile-details">
                     <div class="detail-item">
                         <span class="label">Email</span>
-                        <span class="value">{{ current_user.email }}</span>
+                        <span class="value">{{ current_user.email or 'N/A' }}</span>
                     </div>
                     <div class="detail-item">
                         <span class="label">Member Since</span>
-                        <span class="value">{{ current_user.created_at.strftime('%B %d, %Y') if current_user.created_at else 'N/A' }}</span>
+                        <span class="value">
+                            {% if current_user.created_at %}
+                                {{ current_user.created_at.strftime('%B %d, %Y') }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
                     </div>
                     <div class="detail-item">
                         <span class="label">Last Login</span>
-                        <span class="value">{{ current_user.last_login.strftime('%B %d, %Y %H:%M') if current_user.last_login else 'N/A' }}</span>
+                        <span class="value">
+                            {% if current_user.last_login %}
+                                {{ current_user.last_login.strftime('%B %d, %Y %H:%M') }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
                     </div>
                     <div class="detail-item">
                         <span class="label">Account Status</span>
@@ -52,54 +65,58 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Change Password Card -->
         <div class="profile-card">
             <div class="card-header">
                 <h3><i class="bi bi-key"></i> Change Password</h3>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('auth.change_password') }}">
-                    {{ form.hidden_tag() if form else '' }}
+                {# ✅ Solution B : envoie current_password / new_password / confirm_password #}
+                <form method="POST" action="{{ url_for('auth.change_password') }}" id="changePasswordForm">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    
+
                     <div class="form-group">
                         <label class="form-label">Current Password</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" name="current_password" class="form-control" required>
+                            <input type="password" name="current_password" class="form-control"
+                                   autocomplete="current-password" required>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label">New Password</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                            <input type="password" name="new_password" class="form-control" required minlength="8">
+                            <input type="password" name="new_password" class="form-control"
+                                   minlength="8" autocomplete="new-password" required>
                         </div>
                         <small class="text-muted">Minimum 8 characters</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label">Confirm New Password</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                            <input type="password" name="confirm_password" class="form-control" required>
+                            <input type="password" name="confirm_password" class="form-control"
+                                   minlength="8" autocomplete="new-password" required>
                         </div>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-lg"></i> Update Password
                     </button>
                 </form>
             </div>
         </div>
-        
+
         <!-- API Keys Card -->
         <div class="profile-card wide">
             <div class="card-header">
                 <h3><i class="bi bi-key-fill"></i> API Keys</h3>
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#generateKeyModal">
+                <button type="button" class="btn btn-sm btn-primary"
+                        data-bs-toggle="modal" data-bs-target="#generateKeyModal">
                     <i class="bi bi-plus-lg"></i> Generate New Key
                 </button>
             </div>
@@ -119,17 +136,42 @@
                     <tbody>
                         {% for key in api_keys %}
                         <tr>
-                            <td>{{ key.name }}</td>
-                            <td><code>{{ key.key[:8] }}...{{ key.key[-4:] }}</code></td>
-                            <td>{{ key.created_at.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ key.last_used.strftime('%Y-%m-%d %H:%M') if key.last_used else 'Never' }}</td>
+                            <td>{{ key.name or 'Unnamed' }}</td>
+                            <td>
+                                {# ✅ FIX : protège contre key.key None ou trop court #}
+                                {% if key.key and key.key|length > 12 %}
+                                    <code>{{ key.key[:8] }}...{{ key.key[-4:] }}</code>
+                                {% elif key.key %}
+                                    <code>{{ key.key[:8] }}...</code>
+                                {% else %}
+                                    <code class="text-muted">-</code>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if key.created_at %}
+                                    {{ key.created_at.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if key.last_used %}
+                                    {{ key.last_used.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">Never</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 <span class="badge bg-{{ 'success' if key.is_active else 'danger' }}">
                                     {{ 'Active' if key.is_active else 'Inactive' }}
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-danger" onclick="revokeKey('{{ key.id }}')">
+                                {# ✅ FIX : data-attribute au lieu de onclick inline #}
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        data-key-id="{{ key.id }}"
+                                        data-key-name="{{ key.name or 'this key' }}"
+                                        onclick="revokeKey(this)">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -146,49 +188,47 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <!-- Notification Preferences -->
         <div class="profile-card">
             <div class="card-header">
                 <h3><i class="bi bi-bell"></i> Notification Preferences</h3>
             </div>
             <div class="card-body">
-                <form id="notification-form">
+                {# Note : form décoratif — pas de backend associé #}
+                <form id="notification-form" onsubmit="return false;">
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="emailAlerts" checked>
                         <label class="form-check-label" for="emailAlerts">
                             Email alerts for critical threats
                         </label>
                     </div>
-                    
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="dailyDigest">
                         <label class="form-check-label" for="dailyDigest">
                             Daily security digest
                         </label>
                     </div>
-                    
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="weeklyReport" checked>
                         <label class="form-check-label" for="weeklyReport">
                             Weekly analytics report
                         </label>
                     </div>
-                    
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="browserNotifications">
                         <label class="form-check-label" for="browserNotifications">
                             Browser push notifications
                         </label>
                     </div>
-                    
-                    <button type="submit" class="btn btn-primary">
+                    <button type="button" class="btn btn-primary"
+                            onclick="savePreferences(this)">
                         <i class="bi bi-check-lg"></i> Save Preferences
                     </button>
                 </form>
             </div>
         </div>
-        
+
         <!-- Danger Zone -->
         <div class="profile-card danger">
             <div class="card-header">
@@ -204,13 +244,14 @@
                         <i class="bi bi-download"></i> Export
                     </a>
                 </div>
-                
+
                 <div class="danger-item">
                     <div class="danger-info">
                         <h4>Delete Account</h4>
                         <p>Permanently delete your account and all associated data</p>
                     </div>
-                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                    <button type="button" class="btn btn-danger"
+                            data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
                         <i class="bi bi-trash"></i> Delete
                     </button>
                 </div>
@@ -232,7 +273,9 @@
                 <div class="modal-body">
                     <div class="form-group mb-3">
                         <label class="form-label">Key Name</label>
-                        <input type="text" name="key_name" class="form-control" placeholder="e.g., Production Server" required>
+                        <input type="text" name="key_name" class="form-control"
+                               placeholder="e.g., Production Server"
+                               maxlength="100" required>
                         <small class="text-muted">Give your key a descriptive name to identify its purpose</small>
                     </div>
                     <div class="alert alert-warning">
@@ -256,49 +299,305 @@
     <div class="modal-dialog">
         <div class="modal-content bg-dark">
             <div class="modal-header">
-                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle"></i> Delete Account</h5>
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle"></i> Delete Account
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>Are you absolutely sure you want to delete your account?</p>
-                <p class="text-danger">This action cannot be undone. All your data will be permanently deleted.</p>
+                <p class="text-danger">
+                    This action cannot be undone. All your data will be permanently deleted.
+                </p>
                 <div class="form-group">
                     <label class="form-label">Type your username to confirm:</label>
-                    <input type="text" id="confirm-username" class="form-control" placeholder="{{ current_user.username }}">
+                    <input type="text" id="confirm-username" class="form-control"
+                           data-username="{{ current_user.username }}"
+                           placeholder="{{ current_user.username }}">
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirm-delete" disabled>Delete Account</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete" disabled>
+                    Delete Account
+                </button>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
+
+{% block extra_css %}
+<style>
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.profile-card {
+    background: var(--bg-card, #1a1a2e);
+    border: 1px solid var(--border-color, #2a2a3a);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.profile-card.wide { grid-column: 1 / -1; }
+
+.profile-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border-color, #2a2a3a);
+}
+
+.profile-card .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profile-card .card-body { padding: 1.25rem; }
+
+.profile-avatar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #2a2a3a);
+    margin-bottom: 1rem;
+}
+
+.avatar-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary, #0d6efd), var(--purple, #6f42c1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: #fff;
+}
+
+.avatar-info h4 {
+    margin: 0 0 0.25rem;
+    font-size: 1.1rem;
+}
+
+.profile-details { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.detail-item .label {
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 0.85rem;
+}
+
+.detail-item .value {
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+.status-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.active { background: rgba(25, 135, 84, 0.2); color: #198754; }
+.status-badge.inactive { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+
+.form-group { margin-bottom: 1rem; }
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.input-group .input-group-text {
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--border-color, #2a2a3a);
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.form-control {
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--border-color, #2a2a3a);
+    color: var(--text-primary, #fff);
+}
+
+.form-control:focus {
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--primary, #0d6efd);
+    color: var(--text-primary, #fff);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--text-muted, #666);
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.empty-state p { margin: 0; }
+
+.danger-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(220, 53, 69, 0.15);
+}
+
+.danger-item:last-child { border-bottom: none; }
+
+.danger-info h4 {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    color: var(--text-primary, #fff);
+}
+
+.danger-info p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.table {
+    color: var(--text-primary, #fff);
+    margin: 0;
+}
+
+.table thead th {
+    background: var(--bg-dark, #0d0d12);
+    border-color: var(--border-color, #2a2a3a);
+    color: var(--text-secondary, #a0a0a0);
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.table tbody td {
+    border-color: var(--border-color, #2a2a3a);
+    vertical-align: middle;
+}
+
+.alert-warning {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+}
+
+@media (max-width: 768px) {
+    .profile-card.wide { grid-column: auto; }
+    .danger-item { flex-direction: column; align-items: flex-start; }
+}
+</style>
+{% endblock %}
+
+
 {% block extra_js %}
 <script>
-    document.getElementById('confirm-username').addEventListener('input', function() {
-        const deleteBtn = document.getElementById('confirm-delete');
-        deleteBtn.disabled = this.value !== '{{ current_user.username }}';
-    });
-    
-    function revokeKey(keyId) {
-        if (confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
-            // Create and submit a form for POST request
+(function () {
+    // ---------------------------------------------------------
+    // Confirm Delete Account
+    // ---------------------------------------------------------
+    const confirmInput = document.getElementById('confirm-username');
+    const deleteBtn = document.getElementById('confirm-delete');
+
+    if (confirmInput && deleteBtn) {
+        const expected = confirmInput.getAttribute('data-username') || '';
+
+        confirmInput.addEventListener('input', function () {
+            deleteBtn.disabled = (this.value || '') !== expected;
+        });
+
+        // Le backend doit définir une route POST /auth/delete-account
+        deleteBtn.addEventListener('click', function () {
+            if (this.disabled) return;
+            if (!confirm('FINAL WARNING: This will permanently delete your account. Continue?')) return;
+
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = '/auth/profile/revoke-api-key/' + keyId;
-            
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrf_token';
-            csrfInput.value = '{{ csrf_token() }}';
-            form.appendChild(csrfInput);
-            
+            form.action = '/auth/delete-account';
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrf_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+
             document.body.appendChild(form);
             form.submit();
-        }
+        });
     }
+
+    // ---------------------------------------------------------
+    // Revoke API Key
+    // ---------------------------------------------------------
+    window.revokeKey = function (btn) {
+        const keyId = btn.getAttribute('data-key-id');
+        const keyName = btn.getAttribute('data-key-name') || 'this key';
+
+        if (!keyId) return;
+        if (!confirm(`Revoke "${keyName}"? This action cannot be undone.`)) return;
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/auth/profile/revoke-api-key/${keyId}`;
+
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrf_token';
+        csrf.value = '{{ csrf_token() }}';
+        form.appendChild(csrf);
+
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+    // ---------------------------------------------------------
+    // Save Preferences (décoratif — pas de backend)
+    // ---------------------------------------------------------
+    window.savePreferences = function (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+
+        setTimeout(function () {
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Saved!';
+            setTimeout(function () {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }, 1500);
+        }, 600);
+    };
+})();
 </script>
 {% endblock %}

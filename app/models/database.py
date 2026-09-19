@@ -4,7 +4,7 @@ Database Models
 SQLAlchemy ORM models for AI-NIDS application.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import secrets
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,6 +13,9 @@ from flask_login import UserMixin
 from app import db
 
 
+# =========================================================
+# USER
+# =========================================================
 class User(UserMixin, db.Model):
     """User model for authentication."""
     
@@ -28,8 +31,10 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime)
     
     # Relationships
-    api_keys = db.relationship('APIKey', backref='user', lazy='dynamic')
+    api_keys = db.relationship('APIKey', backref='user', lazy='dynamic',
+                               foreign_keys='APIKey.user_id')
     
+    # -------- Password --------
     def set_password(self, password):
         """Hash and set password."""
         self.password_hash = generate_password_hash(password)
@@ -38,22 +43,51 @@ class User(UserMixin, db.Model):
         """Check password against hash."""
         return check_password_hash(self.password_hash, password)
     
+    # -------- Role helpers --------
+    @property
+    def is_admin(self):
+        return (self.role or '').lower() == 'admin'
+    
+    @property
+    def is_analyst(self):
+        return (self.role or '').lower() in ('admin', 'analyst')
+    
+    @property
+    def is_viewer(self):
+        return (self.role or '').lower() == 'viewer'
+    
+    def has_role(self, *roles):
+        """Check if user has any of the given roles."""
+        return (self.role or '').lower() in [r.lower() for r in roles]
+    
+    # -------- Flask-Login override --------
+    @property
+    def is_authenticated(self):
+        return True
+    
+    def get_id(self):
+        return str(self.id)
+    
+    # -------- Serialization --------
     def to_dict(self):
         """Convert to dictionary."""
         return {
             'id': self.id,
             'username': self.username,
             'email': self.email,
-            'role': self.role,
-            'is_active': self.is_active,
+            'role': self.role or 'viewer',
+            'is_active': bool(self.is_active),
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'last_login': self.last_login.isoformat() if self.last_login else None
+            'last_login': self.last_login.isoformat() if self.last_login else None,
         }
     
     def __repr__(self):
         return f'<User {self.username}>'
 
 
+# =========================================================
+# ALERT
+# =========================================================
 class Alert(db.Model):
     """Alert model for detected threats."""
     
@@ -80,6 +114,7 @@ class Alert(db.Model):
     
     # Model Information
     model_used = db.Column(db.String(50))  # xgboost, autoencoder, lstm, ensemble
+    model_version = db.Column(db.String(50))  # ← AJOUTÉ (utilisé dans alert_detail.html)
     shap_values = db.Column(db.Text)  # JSON string of SHAP explanations
     
     # Status
@@ -92,6 +127,12 @@ class Alert(db.Model):
     resolved_at = db.Column(db.DateTime)
     resolution_notes = db.Column(db.Text)
     
+    # ← AJOUTÉ : champ `status` (utilisé dans alerts.html + alert_detail.html)
+    status = db.Column(db.String(20), default='new', index=True)  # new, acknowledged, resolved
+    
+    # ← AJOUTÉ : notes d'investigation (utilisé dans alert_detail.html)
+    notes = db.Column(db.Text)  # JSON string of notes list
+    
     # Raw Data
     raw_data = db.Column(db.Text)  # JSON string of original flow data
     
@@ -101,6 +142,90 @@ class Alert(db.Model):
         db.Index('idx_alert_type_timestamp', 'attack_type', 'timestamp'),
     )
     
+    # -------- Severity helpers --------
+    @property
+    def severity_color(self):
+        """Get Bootstrap color class for severity."""
+        colors = {
+            'critical': 'danger',
+            'high': 'warning',
+            'medium': 'info',
+            'low': 'success',
+            'info': 'secondary',
+        }
+        return colors.get((self.severity or 'info').lower(), 'secondary')
+    
+    @property
+    def severity_icon(self):
+        """Get emoji icon for severity."""
+        icons = {
+            'critical': '🔴',
+            'high': '🟠',
+            'medium': '🟡',
+            'low': '🟢',
+            'info': '🔵',
+        }
+        return icons.get((self.severity or 'info').lower(), '⚪')
+    
+    @property
+    def severity_badge_class(self):
+        """Get Bootstrap badge class for severity."""
+        return f'bg-{self.severity_color}'
+    
+    # -------- Status helpers (safe for both `status` and booleans) --------
+    @property
+    def is_new(self):
+        return (self.status or 'new').lower() == 'new' or (
+            not self.acknowledged and not self.resolved
+        )
+    
+    @property
+    def is_acknowledged(self):
+        return self.acknowledged or (self.status or '').lower() == 'acknowledged'
+    
+    @property
+    def is_resolved(self):
+        return self.resolved or (self.status or '').lower() == 'resolved'
+    
+    # -------- Notes (safe JSON parsing) --------
+    @property
+    def notes_list(self):
+        """Return notes as a list of dicts (safe)."""
+        if not self.notes:
+            return []
+        if isinstance(self.notes, list):
+            return self.notes
+        try:
+            data = json.loads(self.notes)
+            return data if isinstance(data, list) else []
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return []
+    
+    def add_note(self, author, content):
+        """Add a note to this alert."""
+        notes = self.notes_list
+        notes.append({
+            'author': author,
+            'content': content,
+            'timestamp': datetime.utcnow().strftime('%Y-%m-%d %H:%M'),
+        })
+        self.notes = json.dumps(notes)
+    
+    # -------- SHAP explanation (safe JSON parsing) --------
+    @property
+    def shap_dict(self):
+        """Return SHAP values as a dict (safe)."""
+        if not self.shap_values:
+            return {}
+        if isinstance(self.shap_values, dict):
+            return self.shap_values
+        try:
+            data = json.loads(self.shap_values)
+            return data if isinstance(data, dict) else {}
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return {}
+    
+    # -------- Serialization --------
     def to_dict(self, include_explanation=False):
         """Convert to dictionary."""
         data = {
@@ -117,49 +242,27 @@ class Alert(db.Model):
             'risk_score': self.risk_score,
             'description': self.description,
             'model_used': self.model_used,
-            'acknowledged': self.acknowledged,
+            'model_version': self.model_version,
+            'status': self.status,
+            'acknowledged': bool(self.acknowledged),
             'acknowledged_at': self.acknowledged_at.isoformat() if self.acknowledged_at else None,
-            'resolved': self.resolved,
+            'resolved': bool(self.resolved),
             'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
-            'resolution_notes': self.resolution_notes
+            'resolution_notes': self.resolution_notes,
         }
         
-        if include_explanation and self.shap_values:
-            try:
-                data['explanation'] = json.loads(self.shap_values)
-            except:
-                data['explanation'] = None
+        if include_explanation:
+            data['explanation'] = self.shap_dict
         
         return data
-    
-    @property
-    def severity_color(self):
-        """Get Bootstrap color class for severity."""
-        colors = {
-            'critical': 'danger',
-            'high': 'warning',
-            'medium': 'info',
-            'low': 'secondary',
-            'info': 'light'
-        }
-        return colors.get(self.severity, 'secondary')
-    
-    @property
-    def severity_icon(self):
-        """Get icon for severity."""
-        icons = {
-            'critical': '🔴',
-            'high': '🟠',
-            'medium': '🟡',
-            'low': '🟢',
-            'info': '🔵'
-        }
-        return icons.get(self.severity, '⚪')
     
     def __repr__(self):
         return f'<Alert {self.id} - {self.attack_type} ({self.severity})>'
 
 
+# =========================================================
+# NETWORK FLOW
+# =========================================================
 class NetworkFlow(db.Model):
     """Network flow model for traffic data."""
     
@@ -203,6 +306,33 @@ class NetworkFlow(db.Model):
         db.Index('idx_flow_src_dst', 'source_ip', 'destination_ip'),
     )
     
+    # -------- Aliases (utilisés dans certains templates) --------
+    @property
+    def src_ip(self):
+        return self.source_ip
+    
+    @property
+    def dst_ip(self):
+        return self.destination_ip
+    
+    @property
+    def src_port(self):
+        return self.source_port
+    
+    @property
+    def dst_port(self):
+        return self.destination_port
+    
+    @property
+    def bytes(self):
+        """Total bytes (sent + received)."""
+        return (self.bytes_sent or 0) + (self.bytes_recv or 0)
+    
+    @property
+    def packets(self):
+        """Total packets."""
+        return (self.packets_sent or 0) + (self.packets_recv or 0)
+    
     def to_dict(self):
         """Convert to dictionary."""
         return {
@@ -210,21 +340,34 @@ class NetworkFlow(db.Model):
             'timestamp': self.timestamp.isoformat() if self.timestamp else None,
             'source_ip': self.source_ip,
             'destination_ip': self.destination_ip,
+            'src_ip': self.source_ip,
+            'dst_ip': self.destination_ip,
             'source_port': self.source_port,
             'destination_port': self.destination_port,
+            'src_port': self.source_port,
+            'dst_port': self.destination_port,
             'protocol': self.protocol,
             'duration': self.duration,
             'total_bytes': self.total_bytes,
+            'bytes_sent': self.bytes_sent,
+            'bytes_recv': self.bytes_recv,
+            'bytes': self.bytes,
             'packets_sent': self.packets_sent,
             'packets_recv': self.packets_recv,
+            'packets': self.packets,
             'label': self.label,
-            'predicted_label': self.predicted_label
+            'predicted_label': self.predicted_label,
+            'is_anomaly': bool(self.is_anomaly),
         }
     
     def __repr__(self):
-        return f'<NetworkFlow {self.source_ip}:{self.source_port} -> {self.destination_ip}:{self.destination_port}>'
+        return (f'<NetworkFlow {self.source_ip}:{self.source_port} '
+                f'-> {self.destination_ip}:{self.destination_port}>')
 
 
+# =========================================================
+# API KEY
+# =========================================================
 class APIKey(db.Model):
     """API Key model for external integrations."""
     
@@ -247,11 +390,11 @@ class APIKey(db.Model):
         api_key = cls(
             key=key,
             name=name,
-            user_id=user_id
+            user_id=user_id,
+            is_active=True,
         )
         
         if expires_days:
-            from datetime import timedelta
             api_key.expires_at = datetime.utcnow() + timedelta(days=expires_days)
         
         return api_key
@@ -266,22 +409,29 @@ class APIKey(db.Model):
         
         return True
     
+    def touch(self):
+        """Update last_used timestamp."""
+        self.last_used = datetime.utcnow()
+    
     def to_dict(self):
         """Convert to dictionary (without full key)."""
         return {
             'id': self.id,
             'name': self.name,
             'key_prefix': self.key[:8] + '...' if self.key else None,
-            'is_active': self.is_active,
+            'is_active': bool(self.is_active),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_used': self.last_used.isoformat() if self.last_used else None,
-            'expires_at': self.expires_at.isoformat() if self.expires_at else None
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
         }
     
     def __repr__(self):
         return f'<APIKey {self.name}>'
 
 
+# =========================================================
+# SYSTEM METRICS
+# =========================================================
 class SystemMetrics(db.Model):
     """System metrics for monitoring."""
     
@@ -315,13 +465,17 @@ class SystemMetrics(db.Model):
             'cpu_usage': self.cpu_usage,
             'memory_usage': self.memory_usage,
             'disk_usage': self.disk_usage,
-            'model_inference_time_ms': self.model_inference_time_ms
+            'model_inference_time_ms': self.model_inference_time_ms,
+            'model_accuracy': self.model_accuracy,
         }
     
     def __repr__(self):
         return f'<SystemMetrics {self.timestamp}>'
 
 
+# =========================================================
+# THREAT INTELLIGENCE
+# =========================================================
 class ThreatIntelligence(db.Model):
     """Threat intelligence data."""
     
@@ -339,7 +493,8 @@ class ThreatIntelligence(db.Model):
     raw_data = db.Column(db.Text)  # JSON from source
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
     
     def to_dict(self):
         """Convert to dictionary."""
@@ -349,9 +504,9 @@ class ThreatIntelligence(db.Model):
             'threat_type': self.threat_type,
             'confidence': self.confidence,
             'source': self.source,
-            'is_blocked': self.is_blocked,
+            'is_blocked': bool(self.is_blocked),
             'first_seen': self.first_seen.isoformat() if self.first_seen else None,
-            'last_seen': self.last_seen.isoformat() if self.last_seen else None
+            'last_seen': self.last_seen.isoformat() if self.last_seen else None,
         }
     
     def __repr__(self):

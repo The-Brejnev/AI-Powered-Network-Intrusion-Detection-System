@@ -11,21 +11,21 @@ Supports multiple AI platforms:
 
 from flask import Blueprint, jsonify, request, render_template
 from flask_login import login_required, current_user
-from app.models.database import db, Alert
 from sqlalchemy import func
-import sys
-import os
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from app import db
+from app.models.database import Alert
 
 ai_models_bp = Blueprint('ai_models', __name__)
 
-# AI Models Configuration - Complete with all template attributes
+
+# =========================================================
+# AI MODELS CONFIG
+# =========================================================
 AI_MODELS_CONFIG = {
     'xgboost': {
         'name': 'XGBoost',
-        'icon': '🚀',
+        'icon': 'bolt',
         'color': '#FF6B6B',
         'provider': 'Local',
         'accuracy': 0.985,
@@ -36,11 +36,11 @@ AI_MODELS_CONFIG = {
         'cost_rating': 10,
         'context_window': 0,
         'best_for': ['DDoS Detection', 'Port Scan', 'Brute Force', 'Fast Classification'],
-        'strengths': ['Ultra-fast inference', 'Low resource usage', 'High accuracy']
+        'strengths': ['Ultra-fast inference', 'Low resource usage', 'High accuracy'],
     },
     'lstm': {
         'name': 'LSTM Neural Network',
-        'icon': '🧠',
+        'icon': 'brain',
         'color': '#4ECDC4',
         'provider': 'Local',
         'accuracy': 0.962,
@@ -51,11 +51,11 @@ AI_MODELS_CONFIG = {
         'cost_rating': 10,
         'context_window': 0,
         'best_for': ['Sequence Analysis', 'Temporal Patterns', 'Session Tracking'],
-        'strengths': ['Temporal awareness', 'Session analysis', 'Pattern memory']
+        'strengths': ['Temporal awareness', 'Session analysis', 'Pattern memory'],
     },
     'gnn': {
         'name': 'Graph Neural Network',
-        'icon': '🔗',
+        'icon': 'diagram-3',
         'color': '#45B7D1',
         'provider': 'Local',
         'accuracy': 0.978,
@@ -66,11 +66,11 @@ AI_MODELS_CONFIG = {
         'cost_rating': 10,
         'context_window': 0,
         'best_for': ['Lateral Movement', 'Network Mapping', 'APT Detection'],
-        'strengths': ['Topology analysis', 'Relationship detection', 'Graph patterns']
+        'strengths': ['Topology analysis', 'Relationship detection', 'Graph patterns'],
     },
     'autoencoder': {
         'name': 'Autoencoder',
-        'icon': '🎯',
+        'icon': 'crosshair',
         'color': '#FFA07A',
         'provider': 'Local',
         'accuracy': 0.954,
@@ -81,11 +81,11 @@ AI_MODELS_CONFIG = {
         'cost_rating': 10,
         'context_window': 0,
         'best_for': ['Zero-day Detection', 'Anomaly Detection', 'Unknown Threats'],
-        'strengths': ['Unsupervised learning', 'Novel threat detection', 'Fast inference']
+        'strengths': ['Unsupervised learning', 'Novel threat detection', 'Fast inference'],
     },
     'ensemble': {
         'name': 'Ensemble Model',
-        'icon': '⚡',
+        'icon': 'lightning-charge',
         'color': '#98D8C8',
         'provider': 'Local',
         'accuracy': 0.991,
@@ -96,11 +96,11 @@ AI_MODELS_CONFIG = {
         'cost_rating': 10,
         'context_window': 0,
         'best_for': ['Critical Threats', 'High Accuracy', 'Production Defense'],
-        'strengths': ['Highest accuracy', 'Robust predictions', 'Multi-model consensus']
+        'strengths': ['Highest accuracy', 'Robust predictions', 'Multi-model consensus'],
     },
     'chatgpt': {
         'name': 'GPT-4 Turbo',
-        'icon': '💬',
+        'icon': 'chat-dots',
         'color': '#10A37F',
         'provider': 'OpenAI',
         'accuracy': 0.88,
@@ -111,11 +111,11 @@ AI_MODELS_CONFIG = {
         'cost_rating': 5,
         'context_window': 128000,
         'best_for': ['Complex Analysis', 'Threat Intelligence', 'Report Generation'],
-        'strengths': ['Deep reasoning', 'Context understanding', 'Natural language']
+        'strengths': ['Deep reasoning', 'Context understanding', 'Natural language'],
     },
     'gemini': {
         'name': 'Google Gemini Pro',
-        'icon': '🌟',
+        'icon': 'stars',
         'color': '#4285F4',
         'provider': 'Google',
         'accuracy': 0.87,
@@ -126,11 +126,11 @@ AI_MODELS_CONFIG = {
         'cost_rating': 6,
         'context_window': 32000,
         'best_for': ['Multimodal Analysis', 'Log Parsing', 'Pattern Recognition'],
-        'strengths': ['Multimodal input', 'Fast processing', 'Google integration']
+        'strengths': ['Multimodal input', 'Fast processing', 'Google integration'],
     },
     'claude': {
         'name': 'Claude 3 Opus',
-        'icon': '🤖',
+        'icon': 'robot',
         'color': '#CC785C',
         'provider': 'Anthropic',
         'accuracy': 0.89,
@@ -141,69 +141,268 @@ AI_MODELS_CONFIG = {
         'cost_rating': 4,
         'context_window': 200000,
         'best_for': ['Deep Analysis', 'Security Auditing', 'Compliance Reports'],
-        'strengths': ['Nuanced reasoning', 'Safety-focused', 'Longest context']
-    }
+        'strengths': ['Nuanced reasoning', 'Safety-focused', 'Longest context'],
+    },
 }
 
+
+# =========================================================
+# HELPERS
+# =========================================================
 def get_all_ai_models():
     """Get all available AI models."""
-    models_list = []
-    for model_id, model_config in AI_MODELS_CONFIG.items():
-        models_list.append({
-            'id': model_id,
-            **model_config
-        })
-    return models_list
+    return [
+        {'id': model_id, **model_config}
+        for model_id, model_config in AI_MODELS_CONFIG.items()
+    ]
 
+
+def _select_model_for_attack(attack_type, severity,
+                              speed_priority=False,
+                              privacy_required=False):
+    """
+    Intelligent model selection based on attack characteristics.
+    Returns: (model_id, reason, defense_strategy)
+    """
+    attack = (attack_type or '').lower()
+    sev = (severity or 'medium').lower()
+
+    # ---- Privacy priority (local only) ----
+    if privacy_required:
+        if sev == 'critical':
+            return ('ensemble',
+                    'Critical severity with privacy requirement. '
+                    'The ensemble model combines all local models '
+                    'for maximum accuracy without external API calls.',
+                    'Deploy full ensemble locally. Enable deep packet '
+                    'inspection and real-time blocking.')
+        if attack in ('zero-day', 'apt', 'unknown'):
+            return ('autoencoder',
+                    'Unknown/novel threat detected. The autoencoder '
+                    'excels at finding anomalies not seen in training data.',
+                    'Isolate affected hosts. Enable unsupervised anomaly '
+                    'detection across the network.')
+        return ('xgboost',
+                'Standard threat with privacy requirement. XGBoost '
+                'offers fast, accurate local inference.',
+                'Apply standard detection rules. Log and monitor.')
+
+    # ---- Speed priority ----
+    if speed_priority:
+        if sev in ('critical', 'high'):
+            return ('gnn',
+                    'Fast response required for high-severity threat. '
+                    'GNN analyzes network relationships quickly.',
+                    'Block source IP immediately. Analyze lateral movement.')
+        return ('xgboost',
+                'Speed priority selected. XGBoost provides the fastest '
+                'inference at 45ms average.',
+                'Apply signature-based detection. Monitor for escalation.')
+
+    # ---- No constraints ----
+    if sev == 'critical':
+        return ('ensemble',
+                'Critical threat detected. The ensemble model provides '
+                'the highest accuracy (99.1%) by combining all local models.',
+                'Deploy full defense stack. Isolate affected systems. '
+                'Alert SOC team immediately.')
+
+    if attack in ('ddos', 'port scan', 'brute force'):
+        return ('xgboost',
+                'High-volume attack detected. XGBoost handles large '
+                'traffic volumes with fast classification.',
+                'Rate-limit traffic. Enable DDoS mitigation.')
+
+    if attack in ('lateral movement', 'apt'):
+        return ('gnn',
+                'Lateral movement/APT requires network topology analysis. '
+                'GNN maps relationships between hosts.',
+                'Segment network. Monitor inter-host communications.')
+
+    if attack in ('data exfiltration', 'malware communication'):
+        return ('lstm',
+                'Data exfiltration exhibits temporal patterns. '
+                'LSTM detects unusual session behavior.',
+                'Block outbound traffic to suspicious destinations. '
+                'Analyze data flows.')
+
+    if attack in ('zero-day', 'unknown'):
+        return ('autoencoder',
+                'Unknown threat pattern. Autoencoder detects anomalies '
+                'without prior training on this attack type.',
+                'Enable behavioral analysis. Quarantine suspicious hosts.')
+
+    # ---- General case ----
+    return ('ensemble',
+            'Standard threat. The ensemble model provides balanced '
+            'accuracy and reliability.',
+            'Apply standard detection rules. Monitor and log.')
+
+
+# =========================================================
+# PAGES
+# =========================================================
 @ai_models_bp.route('/ai-models')
 @login_required
 def ai_models_page():
     """AI Models dashboard page."""
     models = get_all_ai_models()
-    
-    # Calculate stats
+
+    try:
+        total_alerts = Alert.query.count()
+        blocked = Alert.query.filter(
+            Alert.status.in_(['resolved', 'acknowledged'])
+        ).count()
+
+        avg_conf = db.session.query(func.avg(Alert.confidence)).scalar()
+        accuracy = round((avg_conf or 0.97) * 100, 1)
+    except Exception:
+        total_alerts = 0
+        blocked = 0
+        accuracy = 99.7
+
     stats = {
-        'threats_blocked': 1247,
+        'threats_blocked': blocked or 1247,
         'avg_response': '12ms',
-        'accuracy': '99.7%'
+        'accuracy': f'{accuracy}%',
+        'total_alerts': total_alerts,
     }
-    
+
     return render_template('ai_models.html', models=models, stats=stats)
 
 
-
+# =========================================================
+# API — LIST MODELS
+# =========================================================
 @ai_models_bp.route('/api/ai-models/')
 @login_required
 def list_models():
     """List all available AI models."""
-    models = get_all_ai_models()
-    return jsonify({
-        'status': 'success',
-        'count': len(models),
-        'models': models
-    })
+    try:
+        models = get_all_ai_models()
+        return jsonify({
+            'status': 'success',
+            'count': len(models),
+            'models': models,
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+# =========================================================
+# API — SELECT MODEL  (CRITICAL)
+# =========================================================
+@ai_models_bp.route('/api/ai-models/select', methods=['POST'])
+@login_required
+def select_model():
+    """
+    Intelligent AI model selection based on threat characteristics.
+    Called via AJAX from ai_models.html.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+
+        attack_type = (data.get('attack_type') or '').strip()
+        severity = (data.get('severity') or 'medium').strip().lower()
+        speed_priority = bool(data.get('speed_priority', False))
+        privacy_required = bool(data.get('privacy_required', False))
+
+        if not attack_type:
+            return jsonify({
+                'success': False,
+                'error': 'attack_type is required',
+            }), 400
+
+        model_id, reason, strategy = _select_model_for_attack(
+            attack_type, severity, speed_priority, privacy_required
+        )
+
+        model = AI_MODELS_CONFIG.get(model_id)
+        if not model:
+            return jsonify({
+                'success': False,
+                'error': f'Model {model_id} not found',
+            }), 500
+
+        selected_model = {
+            'id': model_id,
+            'name': model['name'],
+            'icon': model['icon'],
+            'color': model['color'],
+            'provider': model['provider'],
+            'version': '1.0',
+            'accuracy': model['accuracy'],
+            'accuracy_rating': model['accuracy_rating'],
+            'speed_rating': model['speed_rating'],
+            'cost_rating': model['cost_rating'],
+            'latency': model['latency'],
+            'description': model['description'],
+            'strengths': model.get('strengths', []),
+            'best_for': model.get('best_for', []),
+            'context_window': model.get('context_window', 0),
+        }
+
+        alternatives = []
+        for alt_id, alt in AI_MODELS_CONFIG.items():
+            if alt_id == model_id:
+                continue
+            alternatives.append({
+                'id': alt_id,
+                'name': alt['name'],
+                'icon': alt['icon'],
+                'role': 'Alternative',
+                'accuracy': alt['accuracy'],
+            })
+            if len(alternatives) >= 3:
+                break
+
+        return jsonify({
+            'success': True,
+            'selected_model': selected_model,
+            'reason': reason,
+            'defense_strategy': strategy,
+            'alternatives': alternatives,
+            'input': {
+                'attack_type': attack_type,
+                'severity': severity,
+                'speed_priority': speed_priority,
+                'privacy_required': privacy_required,
+            },
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Model selection failed: {e}',
+        }), 500
+
+
+# =========================================================
+# API — GET MODEL BY ID
+# =========================================================
 @ai_models_bp.route('/api/ai-models/<model_id>')
 @login_required
 def get_model(model_id):
     """Get details for a specific model."""
+    if not model_id.replace('_', '').replace('-', '').isalnum():
+        return jsonify({'status': 'error', 'message': 'Invalid model ID'}), 400
+
     if model_id not in AI_MODELS_CONFIG:
         return jsonify({
             'status': 'error',
-            'message': f'Model {model_id} not found'
+            'message': f'Model {model_id} not found',
         }), 404
-    
+
     model_config = AI_MODELS_CONFIG[model_id]
     return jsonify({
         'status': 'success',
-        'model': {
-            'id': model_id,
-            **model_config
-        }
+        'model': {'id': model_id, **model_config},
     })
 
 
+# =========================================================
+# API — ACTIVE MODELS
+# =========================================================
 @ai_models_bp.route('/api/ai-models/active')
 @login_required
 def get_active_models():
@@ -213,65 +412,63 @@ def get_active_models():
         'anomaly': 'autoencoder',
         'temporal': 'lstm',
         'network': 'gnn',
-        'fast': 'xgboost'
+        'fast': 'xgboost',
     }
-    
+
     result = []
     for role, model_id in active_models.items():
-        if model_id in AI_MODELS_CONFIG:
-            model = AI_MODELS_CONFIG[model_id]
+        model = AI_MODELS_CONFIG.get(model_id)
+        if model:
             result.append({
                 'role': role,
                 'id': model_id,
                 'name': model['name'],
                 'icon': model['icon'],
                 'accuracy': model['accuracy'],
-                'status': 'Active'
+                'status': 'Active',
             })
-    
+
     return jsonify({
         'status': 'success',
         'active_models': result,
-        'ensemble_enabled': True
+        'ensemble_enabled': True,
     })
 
 
+# =========================================================
+# API — PERFORMANCE
+# =========================================================
 @ai_models_bp.route('/api/ai-models/performance')
 @login_required
 def get_model_performance():
     """Get performance metrics for all models."""
     performance = {}
-    
-    for model_id, model_config in AI_MODELS_CONFIG.items():
+    for model_id, cfg in AI_MODELS_CONFIG.items():
         performance[model_id] = {
-            'name': model_config['name'],
-            'accuracy': model_config['accuracy'],
-            'latency_ms': model_config['latency'],
-            'status': 'Active'
+            'name': cfg['name'],
+            'accuracy': cfg['accuracy'],
+            'latency_ms': cfg['latency'],
+            'status': 'Active',
         }
-    
-    return jsonify({
-        'status': 'success',
-        'models': performance
-    })
+    return jsonify({'status': 'success', 'models': performance})
 
 
+# =========================================================
+# API — STATISTICS
+# =========================================================
 @ai_models_bp.route('/api/ai-models/statistics')
 @login_required
 def get_model_statistics():
     """Get overall model statistics."""
     total_models = len(AI_MODELS_CONFIG)
     avg_accuracy = sum(m['accuracy'] for m in AI_MODELS_CONFIG.values()) / total_models
-    
+
     return jsonify({
         'status': 'success',
         'statistics': {
             'total_models': total_models,
             'average_accuracy': round(avg_accuracy, 4),
             'ensemble_confidence': 0.991,
-            'active_defense': 'Multi-Model Ensemble'
-        }
+            'active_defense': 'Multi-Model Ensemble',
+        },
     })
-
-
-# Legacy routes removed - using local AI_MODELS_CONFIG instead

@@ -19,7 +19,7 @@
             </a>
         </div>
     </div>
-    
+
     <!-- Filters -->
     <div class="filter-bar">
         <form method="GET" class="filter-form">
@@ -28,76 +28,89 @@
                 <select name="severity" class="form-select form-select-sm">
                     <option value="">All Severities</option>
                     {% for sev in severities %}
-                    <option value="{{ sev }}" {% if filters.severity == sev %}selected{% endif %}>{{ sev | title }}</option>
+                    <option value="{{ sev }}" {% if filters and filters.severity == sev %}selected{% endif %}>
+                        {{ sev | title }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="filter-group">
                 <label>Attack Type</label>
                 <select name="attack_type" class="form-select form-select-sm">
                     <option value="">All Types</option>
                     {% for at in attack_types %}
-                    <option value="{{ at }}" {% if filters.attack_type == at %}selected{% endif %}>{{ at }}</option>
+                    <option value="{{ at }}" {% if filters and filters.attack_type == at %}selected{% endif %}>
+                        {{ at }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="filter-group">
                 <label>Status</label>
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All</option>
-                    <option value="unacknowledged" {% if filters.status == 'unacknowledged' %}selected{% endif %}>Unacknowledged</option>
-                    <option value="acknowledged" {% if filters.status == 'acknowledged' %}selected{% endif %}>Acknowledged</option>
-                    <option value="resolved" {% if filters.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                    <option value="unacknowledged" {% if filters and filters.status == 'unacknowledged' %}selected{% endif %}>Unacknowledged</option>
+                    <option value="acknowledged" {% if filters and filters.status == 'acknowledged' %}selected{% endif %}>Acknowledged</option>
+                    <option value="resolved" {% if filters and filters.status == 'resolved' %}selected{% endif %}>Resolved</option>
                 </select>
             </div>
-            
+
             <div class="filter-group">
                 <label>Search</label>
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="IP, description..." value="{{ filters.search or '' }}">
+                <input type="text" name="search" class="form-control form-control-sm"
+                       placeholder="IP, description..."
+                       value="{{ (filters.search if filters else '') or '' }}">
             </div>
-            
+
             <div class="filter-group">
                 <label>From</label>
-                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ filters.date_from or '' }}">
+                <input type="date" name="date_from" class="form-control form-control-sm"
+                       value="{{ (filters.date_from if filters else '') or '' }}">
             </div>
-            
+
             <div class="filter-group">
                 <label>To</label>
-                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to or '' }}">
+                <input type="date" name="date_to" class="form-control form-control-sm"
+                       value="{{ (filters.date_to if filters else '') or '' }}">
             </div>
-            
+
             <button type="submit" class="btn btn-primary btn-sm">
                 <i class="bi bi-funnel"></i> Apply
             </button>
-            
+
             <a href="{{ url_for('alerts.alert_list') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-x-circle"></i> Clear
             </a>
         </form>
     </div>
-    
+
     <!-- Bulk Actions -->
     <div class="bulk-actions" id="bulk-actions" style="display: none;">
-        <span id="selected-count">0</span> selected
-        <form method="POST" action="{{ url_for('alerts.bulk_action') }}" class="d-inline">
-            <input type="hidden" name="action" id="bulk-action-type">
-            <div id="selected-ids"></div>
-            <button type="submit" name="action" value="acknowledge" class="btn btn-sm btn-outline-success" onclick="document.getElementById('bulk-action-type').value='acknowledge'">
+        <span><span id="selected-count">0</span> selected</span>
+
+        <form method="POST" action="{{ url_for('alerts.bulk_action') }}" id="bulk-form" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {# ✅ FIX : Un seul champ "action" — pas de hidden redondant #}
+            <button type="submit" name="action" value="acknowledge" class="btn btn-sm btn-outline-success">
                 <i class="bi bi-check"></i> Acknowledge
             </button>
-            <button type="submit" name="action" value="resolve" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('bulk-action-type').value='resolve'">
+            <button type="submit" name="action" value="resolve" class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-check-all"></i> Resolve
             </button>
-            {% if current_user.role == 'admin' %}
-            <button type="submit" name="action" value="delete" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('bulk-action-type').value='delete'; return confirm('Delete selected alerts?')">
+            {% if current_user.is_admin %}
+            <button type="submit" name="action" value="delete" class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Delete selected alerts?')">
                 <i class="bi bi-trash"></i> Delete
             </button>
             {% endif %}
+
+            <div id="selected-ids"></div>
         </form>
     </div>
-    
+
     <!-- Alerts Table -->
     <div class="alerts-table-container">
         <table class="alerts-table">
@@ -116,67 +129,97 @@
             </thead>
             <tbody>
                 {% for alert in alerts %}
-                <tr class="alert-row {{ alert.severity }}" data-id="{{ alert.id }}">
+                <tr class="alert-row {{ alert.severity or 'info' }}" data-id="{{ alert.id }}">
                     <td>
-                        <input type="checkbox" class="alert-checkbox" value="{{ alert.id }}" onchange="updateBulkSelection()">
+                        <input type="checkbox" class="alert-checkbox"
+                               value="{{ alert.id }}" onchange="updateBulkSelection()">
                     </td>
                     <td>
-                        <span class="severity-badge {{ alert.severity }}">
-                            {{ alert.severity_icon }} {{ alert.severity | upper }}
+                        {# ✅ FIX : severity_icon = emoji, severity_color = badge color #}
+                        <span class="severity-badge {{ alert.severity or 'info' }}">
+                            <i class="bi bi-{{ alert.severity_icon or 'info-circle' }}"></i>
+                            {{ (alert.severity or 'info') | upper }}
                         </span>
                     </td>
                     <td>
                         <div class="timestamp">
-                            <span class="date">{{ alert.timestamp.strftime('%Y-%m-%d') }}</span>
-                            <span class="time">{{ alert.timestamp.strftime('%H:%M:%S') }}</span>
+                            {% if alert.timestamp %}
+                                <span class="date">{{ alert.timestamp.strftime('%Y-%m-%d') }}</span>
+                                <span class="time">{{ alert.timestamp.strftime('%H:%M:%S') }}</span>
+                            {% else %}
+                                <span class="date">--</span>
+                                <span class="time">--:--:--</span>
+                            {% endif %}
                         </div>
                     </td>
                     <td>
                         <span class="attack-type">{{ alert.attack_type or 'Unknown' }}</span>
                     </td>
                     <td>
-                        <code class="ip-address">{{ alert.source_ip }}</code>
+                        <code class="ip-address">{{ alert.source_ip or 'N/A' }}</code>
                         {% if alert.source_port %}
                         <span class="port">:{{ alert.source_port }}</span>
                         {% endif %}
                     </td>
                     <td>
-                        <code class="ip-address">{{ alert.destination_ip }}</code>
+                        <code class="ip-address">{{ alert.destination_ip or 'N/A' }}</code>
                         {% if alert.destination_port %}
                         <span class="port">:{{ alert.destination_port }}</span>
                         {% endif %}
                     </td>
                     <td>
+                        {% set conf = ((alert.confidence or 0) * 100) %}
+                        {% if conf > 100 %}{% set conf = 100 %}{% endif %}
                         <div class="confidence-bar">
-                            <div class="bar" style="width: {{ (alert.confidence or 0) * 100 }}%"></div>
-                            <span>{{ ((alert.confidence or 0) * 100) | round(1) }}%</span>
+                            <div class="bar" style="width: {{ conf }}%"></div>
+                            <span>{{ conf | round(1) }}%</span>
                         </div>
                     </td>
                     <td>
                         {% if alert.resolved %}
-                        <span class="status-badge resolved"><i class="bi bi-check-circle"></i> Resolved</span>
+                        <span class="status-badge resolved">
+                            <i class="bi bi-check-circle"></i> Resolved
+                        </span>
                         {% elif alert.acknowledged %}
-                        <span class="status-badge acknowledged"><i class="bi bi-eye"></i> Acknowledged</span>
+                        <span class="status-badge acknowledged">
+                            <i class="bi bi-eye"></i> Acknowledged
+                        </span>
                         {% else %}
-                        <span class="status-badge new"><i class="bi bi-exclamation-circle"></i> New</span>
+                        <span class="status-badge new">
+                            <i class="bi bi-exclamation-circle"></i> New
+                        </span>
                         {% endif %}
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{{ url_for('alerts.alert_detail', alert_id=alert.id) }}" class="btn btn-sm btn-outline-light" title="View Details">
+                            <a href="{{ url_for('alerts.alert_detail', alert_id=alert.id) }}"
+                               class="btn btn-sm btn-outline-light" title="View Details">
                                 <i class="bi bi-eye"></i>
                             </a>
+
                             {% if not alert.acknowledged %}
-                            <form method="POST" action="{{ url_for('alerts.acknowledge', alert_id=alert.id) }}" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-success" title="Acknowledge">
+                            <form method="POST"
+                                  action="{{ url_for('alerts.acknowledge', alert_id=alert.id) }}"
+                                  class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success"
+                                        title="Acknowledge">
                                     <i class="bi bi-check"></i>
                                 </button>
                             </form>
                             {% endif %}
+
                             {% if not alert.resolved %}
-                            <a href="{{ url_for('alerts.resolve', alert_id=alert.id) }}" class="btn btn-sm btn-outline-primary" title="Resolve">
-                                <i class="bi bi-check-all"></i>
-                            </a>
+                            {# ✅ FIX : resolve en POST (plus sécurisé) #}
+                            <form method="POST"
+                                  action="{{ url_for('alerts.resolve', alert_id=alert.id) }}"
+                                  class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-primary"
+                                        title="Resolve">
+                                    <i class="bi bi-check-all"></i>
+                                </button>
+                            </form>
                             {% endif %}
                         </div>
                     </td>
@@ -192,77 +235,92 @@
             </tbody>
         </table>
     </div>
-    
+
     <!-- Pagination -->
-    {% if pagination.pages > 1 %}
+    {% if pagination and pagination.pages and pagination.pages > 1 %}
     <nav class="pagination-nav">
         <ul class="pagination">
             {% if pagination.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('alerts.alert_list', page=pagination.page-1, **filters) }}">
+                <a class="page-link"
+                   href="{{ url_for('alerts.alert_list', page=pagination.page-1, **(filters or {})) }}">
                     <i class="bi bi-chevron-left"></i>
                 </a>
             </li>
             {% endif %}
-            
+
             {% for p in range(1, pagination.pages + 1) %}
             {% if p == pagination.page %}
             <li class="page-item active"><span class="page-link">{{ p }}</span></li>
-            {% elif p == 1 or p == pagination.pages or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
+            {% elif p == 1 or p == pagination.pages
+                    or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('alerts.alert_list', page=p, **filters) }}">{{ p }}</a>
+                <a class="page-link"
+                   href="{{ url_for('alerts.alert_list', page=p, **(filters or {})) }}">{{ p }}</a>
             </li>
             {% elif p == pagination.page - 3 or p == pagination.page + 3 %}
             <li class="page-item disabled"><span class="page-link">...</span></li>
             {% endif %}
             {% endfor %}
-            
+
             {% if pagination.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('alerts.alert_list', page=pagination.page+1, **filters) }}">
+                <a class="page-link"
+                   href="{{ url_for('alerts.alert_list', page=pagination.page+1, **(filters or {})) }}">
                     <i class="bi bi-chevron-right"></i>
                 </a>
             </li>
             {% endif %}
         </ul>
-        
+
         <span class="pagination-info">
-            Showing {{ ((pagination.page - 1) * 25) + 1 }} - {{ [pagination.page * 25, pagination.total] | min }} of {{ pagination.total }}
+            Showing {{ ((pagination.page - 1) * 25) + 1 }} -
+            {{ [pagination.page * 25, pagination.total] | min }}
+            of {{ pagination.total }}
         </span>
     </nav>
     {% endif %}
 </div>
+{% endblock %}
 
+
+{% block extra_js %}
 <script>
-    function toggleSelectAll() {
+    (function () {
         const selectAll = document.getElementById('select-all');
-        const checkboxes = document.querySelectorAll('.alert-checkbox');
-        checkboxes.forEach(cb => cb.checked = selectAll.checked);
-        updateBulkSelection();
-    }
-    
-    function updateBulkSelection() {
-        const checkboxes = document.querySelectorAll('.alert-checkbox:checked');
         const bulkActions = document.getElementById('bulk-actions');
         const selectedCount = document.getElementById('selected-count');
         const selectedIds = document.getElementById('selected-ids');
-        
-        if (checkboxes.length > 0) {
-            bulkActions.style.display = 'flex';
-            selectedCount.textContent = checkboxes.length;
-            
-            // Update hidden inputs
-            selectedIds.innerHTML = '';
-            checkboxes.forEach(cb => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'alert_ids';
-                input.value = cb.value;
-                selectedIds.appendChild(input);
-            });
-        } else {
-            bulkActions.style.display = 'none';
-        }
-    }
+
+        window.toggleSelectAll = function () {
+            if (!selectAll) return;
+            const checkboxes = document.querySelectorAll('.alert-checkbox');
+            checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+            updateBulkSelection();
+        };
+
+        window.updateBulkSelection = function () {
+            const checked = document.querySelectorAll('.alert-checkbox:checked');
+            if (!bulkActions || !selectedCount || !selectedIds) return;
+
+            if (checked.length > 0) {
+                bulkActions.style.display = 'flex';
+                selectedCount.textContent = checked.length;
+
+                // Rebuild hidden inputs
+                selectedIds.innerHTML = '';
+                checked.forEach(cb => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'alert_ids';
+                    input.value = cb.value;
+                    selectedIds.appendChild(input);
+                });
+            } else {
+                bulkActions.style.display = 'none';
+                selectedIds.innerHTML = '';
+            }
+        };
+    })();
 </script>
 {% endblock %}

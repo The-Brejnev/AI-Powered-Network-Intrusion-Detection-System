@@ -12,92 +12,86 @@
         </div>
         <div class="header-actions">
             <select id="time-range" class="form-select form-select-sm" onchange="updateAnalytics()">
-                <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 Days</option>
+                <option value="7"  {% if days == 7  %}selected{% endif %}>Last 7 Days</option>
                 <option value="14" {% if days == 14 %}selected{% endif %}>Last 14 Days</option>
                 <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
                 <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
             </select>
         </div>
     </div>
-    
+
     <!-- Summary Stats -->
     <div class="analytics-stats">
         <div class="stat-card">
-            <div class="stat-icon blue">
-                <i class="bi bi-bell"></i>
-            </div>
+            <div class="stat-icon blue"><i class="bi bi-bell"></i></div>
             <div class="stat-content">
-                <h3>{{ stats.total_alerts }}</h3>
+                <h3>{{ (stats.total_alerts if stats else 0) or 0 }}</h3>
                 <p>Total Alerts</p>
             </div>
         </div>
-        
+
         <div class="stat-card">
-            <div class="stat-icon green">
-                <i class="bi bi-activity"></i>
-            </div>
+            <div class="stat-icon green"><i class="bi bi-activity"></i></div>
             <div class="stat-content">
-                <h3>{{ stats.total_flows }}</h3>
+                <h3>{{ (stats.total_flows if stats else 0) or 0 }}</h3>
                 <p>Network Flows</p>
             </div>
         </div>
-        
+
         <div class="stat-card">
-            <div class="stat-icon orange">
-                <i class="bi bi-geo"></i>
-            </div>
+            <div class="stat-icon orange"><i class="bi bi-geo"></i></div>
             <div class="stat-content">
-                <h3>{{ stats.unique_sources }}</h3>
+                <h3>{{ (stats.unique_sources if stats else 0) or 0 }}</h3>
                 <p>Unique Sources</p>
             </div>
         </div>
-        
+
         <div class="stat-card">
-            <div class="stat-icon red">
-                <i class="bi bi-exclamation-triangle"></i>
-            </div>
+            <div class="stat-icon red"><i class="bi bi-exclamation-triangle"></i></div>
             <div class="stat-content">
-                <h3>{{ stats.critical_count }}</h3>
+                <h3>{{ (stats.critical_count if stats else 0) or 0 }}</h3>
                 <p>Critical Alerts</p>
             </div>
         </div>
-        
+
         <div class="stat-card">
-            <div class="stat-icon purple">
-                <i class="bi bi-graph-up"></i>
-            </div>
+            <div class="stat-icon purple"><i class="bi bi-graph-up"></i></div>
             <div class="stat-content">
-                <h3>{{ stats.avg_daily_alerts }}</h3>
+                <h3>{{ (stats.avg_daily_alerts if stats else 0) or 0 }}</h3>
                 <p>Avg Daily Alerts</p>
             </div>
         </div>
-        
+
         <div class="stat-card">
-            <div class="stat-icon teal">
-                <i class="bi bi-check-circle"></i>
-            </div>
+            <div class="stat-icon teal"><i class="bi bi-check-circle"></i></div>
             <div class="stat-content">
-                <h3>{{ stats.resolution_rate }}%</h3>
+                <h3>{{ (stats.resolution_rate if stats else 0) or 0 }}%</h3>
                 <p>Resolution Rate</p>
             </div>
         </div>
     </div>
-    
+
     <!-- Charts Row 1 -->
     <div class="charts-grid">
         <div class="chart-card wide">
             <div class="card-header">
                 <h3><i class="bi bi-graph-up"></i> Alert Timeline</h3>
                 <div class="chart-options">
-                    <button class="btn btn-sm btn-outline-secondary active" data-metric="alerts" onclick="updateTimelineMetric('alerts')">Alerts</button>
-                    <button class="btn btn-sm btn-outline-secondary" data-metric="flows" onclick="updateTimelineMetric('flows')">Flows</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary active"
+                            data-metric="alerts" onclick="updateTimelineMetric('alerts')">
+                        Alerts
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-metric="flows" onclick="updateTimelineMetric('flows')">
+                        Flows
+                    </button>
                 </div>
             </div>
             <div class="card-body">
                 <canvas id="timelineChart" height="100"></canvas>
             </div>
         </div>
-        
+
         <div class="chart-card">
             <div class="card-header">
                 <h3><i class="bi bi-pie-chart"></i> Severity Distribution</h3>
@@ -107,7 +101,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Charts Row 2 -->
     <div class="charts-grid">
         <div class="chart-card">
@@ -118,30 +112,30 @@
                 <canvas id="attackTypesChart" height="200"></canvas>
             </div>
         </div>
-        
+
         <div class="chart-card">
             <div class="card-header">
                 <h3><i class="bi bi-geo-alt"></i> Top Attackers</h3>
             </div>
             <div class="card-body">
                 <div id="top-attackers-list" class="ranking-list">
-                    <!-- Populated by JS -->
+                    <div class="ranking-loading">Loading...</div>
                 </div>
             </div>
         </div>
-        
+
         <div class="chart-card">
             <div class="card-header">
                 <h3><i class="bi bi-crosshair"></i> Top Targets</h3>
             </div>
             <div class="card-body">
                 <div id="top-targets-list" class="ranking-list">
-                    <!-- Populated by JS -->
+                    <div class="ranking-loading">Loading...</div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Heatmap -->
     <div class="chart-card full-width">
         <div class="card-header">
@@ -150,19 +144,104 @@
         </div>
         <div class="card-body">
             <div id="heatmap-container">
-                <canvas id="heatmapChart" height="150"></canvas>
+                <div class="ranking-loading">Loading heatmap...</div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
+
+{% block extra_css %}
+<style>
+    .heatmap {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .heatmap-row {
+        display: flex;
+        gap: 2px;
+    }
+
+    .heatmap-label {
+        width: 40px;
+        font-size: 0.75rem;
+        color: #a0a0a0;
+        display: flex;
+        align-items: center;
+    }
+
+    .heatmap-hour {
+        flex: 1;
+        font-size: 0.7rem;
+        color: #666;
+        text-align: center;
+    }
+
+    .heatmap-cell {
+        flex: 1;
+        height: 20px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .heatmap-cell:hover {
+        transform: scale(1.1);
+    }
+
+    .ranking-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .ranking-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+    }
+
+    .ranking-item .rank {
+        font-weight: 600;
+        color: #0d6efd;
+        width: 30px;
+    }
+
+    .ranking-item .ip {
+        flex: 1;
+        font-size: 0.9rem;
+    }
+
+    .ranking-item .count {
+        color: #a0a0a0;
+        font-size: 0.85rem;
+    }
+
+    .ranking-loading {
+        padding: 1rem;
+        text-align: center;
+        color: #666;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+
 {% block extra_js %}
 <script>
+    // ✅ Protégé : days est toujours un int valide
+    const days = {{ (days if days and days is number else 7) }};
+
     let timelineChart, severityChart, attackTypesChart;
-    const days = {{ days }};
-    
-    document.addEventListener('DOMContentLoaded', function() {
+
+    document.addEventListener('DOMContentLoaded', function () {
         initTimelineChart();
         initSeverityChart();
         initAttackTypesChart();
@@ -170,19 +249,23 @@
         loadTopTargets();
         loadHeatmap();
     });
-    
+
+    // ---------------------------------------------------------
+    // TIMELINE
+    // ---------------------------------------------------------
     function initTimelineChart() {
-        fetch(`/analytics/api/timeline?metric=alerts&days=${days}`)
-            .then(r => r.json())
+        fetchJson(`/analytics/api/timeline?metric=alerts&days=${days}`)
             .then(data => {
-                const ctx = document.getElementById('timelineChart').getContext('2d');
-                timelineChart = new Chart(ctx, {
+                const el = document.getElementById('timelineChart');
+                if (!el) return;
+
+                timelineChart = new Chart(el.getContext('2d'), {
                     type: 'line',
                     data: {
-                        labels: data.labels,
+                        labels: data.labels || [],
                         datasets: [{
                             label: 'Alerts',
-                            data: data.values,
+                            data: data.values || [],
                             borderColor: '#0d6efd',
                             backgroundColor: 'rgba(13, 110, 253, 0.1)',
                             fill: true,
@@ -201,18 +284,31 @@
                 });
             });
     }
-    
+
+    // ---------------------------------------------------------
+    // SEVERITY
+    // ---------------------------------------------------------
     function initSeverityChart() {
-        fetch(`/analytics/api/severity-distribution?days=${days}`)
-            .then(r => r.json())
+        fetchJson(`/analytics/api/severity-distribution?days=${days}`)
             .then(data => {
-                const ctx = document.getElementById('severityChart').getContext('2d');
-                severityChart = new Chart(ctx, {
+                const el = document.getElementById('severityChart');
+                if (!el) return;
+
+                const labels = Array.isArray(data.labels) ? data.labels : [];
+                const values = Array.isArray(data.values) ? data.values : [];
+
+                if (labels.length === 0) {
+                    el.parentElement.innerHTML =
+                        '<div class="ranking-loading">No severity data available</div>';
+                    return;
+                }
+
+                severityChart = new Chart(el.getContext('2d'), {
                     type: 'doughnut',
                     data: {
-                        labels: data.labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                        labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
                         datasets: [{
-                            data: data.values,
+                            data: values,
                             backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0d6efd']
                         }]
                     },
@@ -225,20 +321,30 @@
                 });
             });
     }
-    
+
+    // ---------------------------------------------------------
+    // ATTACK TYPES
+    // ---------------------------------------------------------
     function initAttackTypesChart() {
-        fetch(`/analytics/api/attack-types?days=${days}`)
-            .then(r => r.json())
+        fetchJson(`/analytics/api/attack-types?days=${days}`)
             .then(data => {
-                const ctx = document.getElementById('attackTypesChart').getContext('2d');
-                attackTypesChart = new Chart(ctx, {
+                const el = document.getElementById('attackTypesChart');
+                if (!el) return;
+
+                const labels = Array.isArray(data.labels) ? data.labels : [];
+                const values = Array.isArray(data.values) ? data.values : [];
+
+                if (labels.length === 0) {
+                    el.parentElement.innerHTML =
+                        '<div class="ranking-loading">No attack data available</div>';
+                    return;
+                }
+
+                attackTypesChart = new Chart(el.getContext('2d'), {
                     type: 'bar',
                     data: {
-                        labels: data.labels,
-                        datasets: [{
-                            data: data.values,
-                            backgroundColor: '#0d6efd'
-                        }]
+                        labels: labels,
+                        datasets: [{ data: values, backgroundColor: '#0d6efd' }]
                     },
                     options: {
                         indexAxis: 'y',
@@ -252,165 +358,156 @@
                 });
             });
     }
-    
+
+    // ---------------------------------------------------------
+    // TOP ATTACKERS / TARGETS
+    // ---------------------------------------------------------
     function loadTopAttackers() {
-        fetch(`/analytics/api/top-sources?days=${days}&limit=10`)
-            .then(r => r.json())
+        fetchJson(`/analytics/api/top-sources?days=${days}&limit=10`)
             .then(data => {
                 const container = document.getElementById('top-attackers-list');
-                if (data.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><i class="bi bi-shield-check"></i><p>No attackers detected</p></div>';
+                if (!container) return;
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    container.innerHTML =
+                        '<div class="empty-state"><i class="bi bi-shield-check"></i>' +
+                        '<p>No attackers detected</p></div>';
                     return;
                 }
+
                 container.innerHTML = data.map((item, i) => `
                     <div class="ranking-item">
                         <span class="rank">#${i + 1}</span>
-                        <code class="ip">${item.ip}</code>
-                        <span class="count">${item.count} alerts</span>
+                        <code class="ip">${escapeHtml(item.ip || 'unknown')}</code>
+                        <span class="count">${item.count || 0} alerts</span>
                     </div>
                 `).join('');
             });
     }
-    
+
     function loadTopTargets() {
-        fetch(`/analytics/api/top-targets?days=${days}&limit=10`)
-            .then(r => r.json())
+        fetchJson(`/analytics/api/top-targets?days=${days}&limit=10`)
             .then(data => {
                 const container = document.getElementById('top-targets-list');
-                if (data.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><i class="bi bi-shield-check"></i><p>No targets detected</p></div>';
+                if (!container) return;
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    container.innerHTML =
+                        '<div class="empty-state"><i class="bi bi-shield-check"></i>' +
+                        '<p>No targets detected</p></div>';
                     return;
                 }
+
                 container.innerHTML = data.map((item, i) => `
                     <div class="ranking-item">
                         <span class="rank">#${i + 1}</span>
-                        <code class="ip">${item.ip}</code>
-                        <span class="count">${item.count} hits</span>
+                        <code class="ip">${escapeHtml(item.ip || 'unknown')}</code>
+                        <span class="count">${item.count || 0} hits</span>
                     </div>
                 `).join('');
             });
     }
-    
+
+    // ---------------------------------------------------------
+    // HEATMAP
+    // ---------------------------------------------------------
     function loadHeatmap() {
-        fetch('/analytics/api/hourly-heatmap')
-            .then(r => r.json())
+        fetchJson('/analytics/api/hourly-heatmap')
             .then(data => {
-                // Create heatmap visualization
                 const container = document.getElementById('heatmap-container');
+                if (!container) return;
+
+                if (!data || !Array.isArray(data.data) || !Array.isArray(data.days)) {
+                    container.innerHTML =
+                        '<div class="ranking-loading">No heatmap data available</div>';
+                    return;
+                }
+
                 let html = '<div class="heatmap">';
-                
-                // Add hour labels
+
+                // Hour labels
                 html += '<div class="heatmap-row"><div class="heatmap-label"></div>';
                 for (let h = 0; h < 24; h += 3) {
                     html += `<div class="heatmap-hour">${h}:00</div>`;
                 }
                 html += '</div>';
-                
-                // Add data rows
+
+                // Data rows
                 data.data.forEach((row, dayIdx) => {
-                    html += `<div class="heatmap-row"><div class="heatmap-label">${data.days[dayIdx]}</div>`;
-                    row.forEach((value, hourIdx) => {
-                        const intensity = Math.min(value / 10, 1);
-                        const color = `rgba(13, 110, 253, ${intensity})`;
-                        html += `<div class="heatmap-cell" style="background: ${color}" title="${data.days[dayIdx]} ${hourIdx}:00 - ${value} alerts"></div>`;
-                    });
+                    const dayLabel = data.days[dayIdx] || `Day ${dayIdx}`;
+                    html += `<div class="heatmap-row"><div class="heatmap-label">${dayLabel}</div>`;
+
+                    if (Array.isArray(row)) {
+                        row.forEach((value, hourIdx) => {
+                            const intensity = Math.min((value || 0) / 10, 1);
+                            const color = `rgba(13, 110, 253, ${intensity})`;
+                            html += `<div class="heatmap-cell" style="background:${color}" ` +
+                                    `title="${dayLabel} ${hourIdx}:00 - ${value || 0} alerts"></div>`;
+                        });
+                    } else {
+                        // Row invalide → afficher 24 cellules vides
+                        for (let i = 0; i < 24; i++) {
+                            html += '<div class="heatmap-cell"></div>';
+                        }
+                    }
+
                     html += '</div>';
                 });
-                
+
                 html += '</div>';
                 container.innerHTML = html;
             });
     }
-    
+
+    // ---------------------------------------------------------
+    // UPDATE TIMELINE METRIC
+    // ---------------------------------------------------------
     function updateTimelineMetric(metric) {
-        document.querySelectorAll('.chart-options button').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-metric="${metric}"]`).classList.add('active');
-        
-        fetch(`/analytics/api/timeline?metric=${metric}&days=${days}`)
-            .then(r => r.json())
+        document.querySelectorAll('.chart-options button').forEach(btn =>
+            btn.classList.remove('active'));
+        const activeBtn = document.querySelector(`[data-metric="${metric}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        if (!timelineChart) return;
+
+        fetchJson(`/analytics/api/timeline?metric=${metric}&days=${days}`)
             .then(data => {
-                timelineChart.data.labels = data.labels;
-                timelineChart.data.datasets[0].data = data.values;
-                timelineChart.data.datasets[0].label = metric.charAt(0).toUpperCase() + metric.slice(1);
+                timelineChart.data.labels = data.labels || [];
+                timelineChart.data.datasets[0].data = data.values || [];
+                timelineChart.data.datasets[0].label =
+                    (metric || '').charAt(0).toUpperCase() + (metric || '').slice(1);
                 timelineChart.update();
             });
     }
-    
+
+    // ---------------------------------------------------------
+    // UPDATE DAYS
+    // ---------------------------------------------------------
     function updateAnalytics() {
-        const days = document.getElementById('time-range').value;
-        window.location.href = `?days=${days}`;
+        const sel = document.getElementById('time-range');
+        if (!sel) return;
+        window.location.href = `?days=${sel.value}`;
+    }
+
+    // ---------------------------------------------------------
+    // HELPERS
+    // ---------------------------------------------------------
+    function fetchJson(url) {
+        return fetch(url, { headers: { 'Accept': 'application/json' } })
+            .then(r => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
+            })
+            .catch(err => {
+                console.error('Fetch error:', url, err);
+                return { labels: [], values: [] };
+            });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 </script>
-
-<style>
-    .heatmap {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-    
-    .heatmap-row {
-        display: flex;
-        gap: 2px;
-    }
-    
-    .heatmap-label {
-        width: 40px;
-        font-size: 0.75rem;
-        color: #a0a0a0;
-        display: flex;
-        align-items: center;
-    }
-    
-    .heatmap-hour {
-        flex: 1;
-        font-size: 0.7rem;
-        color: #666;
-        text-align: center;
-    }
-    
-    .heatmap-cell {
-        flex: 1;
-        height: 20px;
-        border-radius: 3px;
-        background: rgba(255, 255, 255, 0.05);
-        cursor: pointer;
-        transition: transform 0.2s;
-    }
-    
-    .heatmap-cell:hover {
-        transform: scale(1.1);
-    }
-    
-    .ranking-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .ranking-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 8px;
-    }
-    
-    .ranking-item .rank {
-        font-weight: 600;
-        color: #0d6efd;
-        width: 30px;
-    }
-    
-    .ranking-item .ip {
-        flex: 1;
-        font-size: 0.9rem;
-    }
-    
-    .ranking-item .count {
-        color: #a0a0a0;
-        font-size: 0.85rem;
-    }
-</style>
 {% endblock %}
